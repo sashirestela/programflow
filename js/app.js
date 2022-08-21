@@ -1,3 +1,9 @@
 import {Application} from './model/application.js';
 
-export let application = new Application("Main Application");
+class ProgramFlow {
+    constructor() {
+        this.application = new Application("Main Application");
+    }
+}
+
+export {ProgramFlow};

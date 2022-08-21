@@ -10,7 +10,7 @@ class Application {
         Validator.checkArgumentType(name, "name", "string");
         this.#_id = Helper.uuid();
         this.name = name;
-        this.scope = undefined;
+        this.idScope = undefined;
         this.idFunctionList = [];
         this.#init();
     }
@@ -22,7 +22,7 @@ class Application {
         const mainFunction = new Function("main", undefined, undefined, startStatement.id, functionScope.id, Function.IS_MAIN);
 
         const applicationScope = new Scope(ScopeType.Application);
-        this.scope = applicationScope.id;
+        this.idScope = applicationScope.id;
         this.idFunctionList.push(mainFunction.id);
     }
 }
