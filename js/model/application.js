@@ -1,6 +1,6 @@
 import {Helper} from './../utils/helper.js';
 import {Validator} from './../utils/errors.js';
-import {ScopeType, Scope} from './symbols.js';
+import {ScopeType, Scope, Function} from './symbols.js';
 import {Start, Return} from './statements.js';
 
 class Application {
