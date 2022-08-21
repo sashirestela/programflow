@@ -26,3 +26,5 @@ class Application {
         this.idFunctionList.push(mainFunction.id);
     }
 }
+
+export {Application};
