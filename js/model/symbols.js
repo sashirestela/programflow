@@ -31,33 +31,33 @@ class Variable extends Symbol {
 }
 
 class Function extends Symbol {
-    #_idStart;
-    #_idScope;
+    #_startId;
+    #_scopeId;
     #_isMain;
 
-    constructor(name, dataType, idParamList, idStart, idScope, isMain=false) {
+    constructor(name, dataType, paramIdList, startId, scopeId, isMain=false) {
         if (dataType !== undefined) {
             Validator.checkArgumentType(dataType, "dataType", DataType);
         }
-        if (idParamList !== undefined) {
-            Validator.checkArgumentType(idParamList, "idParamList", "string", Validator.ARGUMENT_IS_ARRAY);
+        if (paramIdList !== undefined) {
+            Validator.checkArgumentType(paramIdList, "paramIdList", "string", Validator.ARGUMENT_IS_ARRAY);
         }
-        Validator.checkArgumentType(idStart, "idStart", "string");
-        Validator.checkArgumentType(idScope, "idScope", "string");
+        Validator.checkArgumentType(startId, "startId", "string");
+        Validator.checkArgumentType(scopeId, "scopeId", "string");
         Validator.checkArgumentType(isMain, "isMain", "boolean");
         super(name, dataType);
-        this.idParamList = idParamList
-        this.#_idStart = idStart;
-        this.#_idScope = idScope;
+        this.paramIdList = paramIdList
+        this.#_startId = startId;
+        this.#_scopeId = scopeId;
         this.#_isMain = isMain;
     }
 
-    get idStart() {
-        return this.#_idStart;
+    get startId() {
+        return this.#_startId;
     }
 
-    get idScope() {
-        return this.#_idScope;
+    get scopeId() {
+        return this.#_scopeId;
     }
 
     get isMain() {
@@ -92,16 +92,19 @@ class ScopeType {
 class Scope {
     #_id;
     #_scopeType;
-    #_idParentScope;
+    #_sourceEntityId;
+    #_parentScopeId;
 
-    constructor(scopeType, idParentScope) {
+    constructor(scopeType, sourceEntityId, parentScopeId) {
         Validator.checkArgumentType(scopeType, "scopeType", ScopeType);
-        if (idParentScope !== undefined) {
-            Validator.checkArgumentType(idParentScope, "idParentScope", "string");
+        Validator.checkArgumentType(sourceEntityId, "sourceEntityId", "string");
+        if (parentScopeId !== undefined) {
+            Validator.checkArgumentType(parentScopeId, "parentScopeId", "string");
         }
         this.#_id = Helper.uuid();
         this.#_scopeType = scopeType;
-        this.#_idParentScope = idParentScope;
+        this.#_sourceEntityId = sourceEntityId;
+        this.#_parentScopeId = parentScopeId;
         this.symbolMap = {};
     }
 
@@ -113,8 +116,12 @@ class Scope {
         return this.#_scopeType;
     }
 
-    get idParentScope() {
-        return this.#_idParentScope;
+    get sourceEntityId() {
+        return this.#_sourceEntityId;
+    }
+
+    get parentScopeId() {
+        return this.#_parentScopeId;
     }
 }
 
