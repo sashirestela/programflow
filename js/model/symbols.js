@@ -1,6 +1,6 @@
-import {Helper} from './../utils/helper.js';
-import {Validator} from './../utils/errors.js';
-import {DataType} from './datatypes.js';
+import { Helper } from './../utils/helper.js';
+import { Validator } from './../utils/errors.js';
+import { DataType } from './datatypes.js';
 
 class Symbol {
     #_id;
@@ -31,29 +31,29 @@ class Variable extends Symbol {
 }
 
 class Function extends Symbol {
-    #_startId;
+    #_startStatementId;
     #_scopeId;
     #_isMain;
 
-    constructor(name, dataType, paramIdList, startId, scopeId, isMain=false) {
+    constructor(name, dataType, paramIdList, startStatementId, scopeId, isMain = false) {
         if (dataType !== undefined) {
             Validator.checkArgumentType(dataType, "dataType", DataType);
         }
         if (paramIdList !== undefined) {
             Validator.checkArgumentType(paramIdList, "paramIdList", "string", Validator.ARGUMENT_IS_ARRAY);
         }
-        Validator.checkArgumentType(startId, "startId", "string");
+        Validator.checkArgumentType(startStatementId, "startStatementId", "string");
         Validator.checkArgumentType(scopeId, "scopeId", "string");
         Validator.checkArgumentType(isMain, "isMain", "boolean");
         super(name, dataType);
         this.paramIdList = paramIdList
-        this.#_startId = startId;
+        this.#_startStatementId = startStatementId;
         this.#_scopeId = scopeId;
         this.#_isMain = isMain;
     }
 
-    get startId() {
-        return this.#_startId;
+    get startStatementId() {
+        return this.#_startStatementId;
     }
 
     get scopeId() {
@@ -86,24 +86,22 @@ class ScopeType {
 
     static Application = new ScopeType("Application");
     static Function = new ScopeType("Function");
-    static Compound = new ScopeType("Compound");
+    static CompoundLoop = new ScopeType("CompoundLoop");
+    static CompoundFork = new ScopeType("CompoundFork");
 }
 
 class Scope {
     #_id;
     #_scopeType;
-    #_sourceEntityId;
     #_parentScopeId;
 
-    constructor(scopeType, sourceEntityId, parentScopeId) {
+    constructor(scopeType, parentScopeId) {
         Validator.checkArgumentType(scopeType, "scopeType", ScopeType);
-        Validator.checkArgumentType(sourceEntityId, "sourceEntityId", "string");
         if (parentScopeId !== undefined) {
             Validator.checkArgumentType(parentScopeId, "parentScopeId", "string");
         }
         this.#_id = Helper.uuid();
         this.#_scopeType = scopeType;
-        this.#_sourceEntityId = sourceEntityId;
         this.#_parentScopeId = parentScopeId;
         this.symbolMap = {};
     }
@@ -116,13 +114,15 @@ class Scope {
         return this.#_scopeType;
     }
 
-    get sourceEntityId() {
-        return this.#_sourceEntityId;
-    }
-
     get parentScopeId() {
         return this.#_parentScopeId;
     }
 }
 
-export {Symbol, Variable, Function, ScopeType, Scope};
+export {
+    Symbol,
+    Variable,
+    Function,
+    ScopeType,
+    Scope,
+};

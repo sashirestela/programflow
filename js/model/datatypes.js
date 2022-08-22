@@ -1,5 +1,5 @@
-import {Helper} from './../utils/helper.js';
-import {Validator} from './../utils/errors.js';
+import { Helper } from './../utils/helper.js';
+import { Validator } from './../utils/errors.js';
 
 class DataType {
     #_className;
@@ -29,7 +29,7 @@ class Primitive extends DataType {
     static list() {
         return Object.values(Primitive);
     }
-    
+
     static Boolean = new Primitive("Boolean");
     static String = new Primitive("String");
     static Integer = new Primitive("Integer");
@@ -79,7 +79,7 @@ class Matrix extends Collection {
 class Map extends Collection {
     #_key;
     #_value;
-    
+
     constructor(key, value) {
         Validator.checkArgumentType(key, "key", DataType)
         Validator.checkArgumentType(value, "value", DataType)
@@ -97,4 +97,11 @@ class Map extends Collection {
     }
 }
 
-export {DataType, Primitive, Collection, List, Matrix, Map};
+export {
+    DataType,
+    Primitive,
+    Collection,
+    List,
+    Matrix,
+    Map,
+};

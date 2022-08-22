@@ -1,4 +1,4 @@
-import {Application} from './model/application.js';
+import { Application } from './model/application.js';
 
 class ProgramFlow {
     constructor() {
@@ -6,4 +6,4 @@ class ProgramFlow {
     }
 }
 
-export {ProgramFlow};
+export { ProgramFlow };

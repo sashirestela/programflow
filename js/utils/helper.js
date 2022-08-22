@@ -9,10 +9,10 @@ class Helper {
         }
         return clazz.prototype.constructor.name;
     }
-    
+
     static uuid() {
         return crypto.randomUUID();
     }
 }
 
-export {Helper};
+export { Helper };

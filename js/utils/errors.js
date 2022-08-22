@@ -1,4 +1,4 @@
-import {Helper} from './helper.js';
+import { Helper } from './helper.js';
 
 class ArgumentTypeError extends TypeError {
     constructor(parameterName, expectedType) {
@@ -24,7 +24,7 @@ class Validator {
         }
     }
 
-    static checkArgumentType(argumentValue, parameterName, expectedType, isArray=false) {
+    static checkArgumentType(argumentValue, parameterName, expectedType, isArray = false) {
         if (!isArray) {
             this.#checkArgumentType(argumentValue, parameterName, expectedType);
         } else {
@@ -37,4 +37,4 @@ class Validator {
     };
 }
 
-export {ArgumentTypeError, Validator};
+export { ArgumentTypeError, Validator };

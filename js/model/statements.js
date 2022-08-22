@@ -1,24 +1,21 @@
-import {Helper} from './../utils/helper.js';
-import {Validator} from './../utils/errors.js';
-import {DataType} from './datatypes.js';
+import { Helper } from './../utils/helper.js';
+import { Validator } from './../utils/errors.js';
+import { DataType } from './datatypes.js';
 
 class Statement {
     #_id;
     #_className;
 
-    constructor(description, comment, surroundScopeId) {
+    constructor(description, surroundScopeId) {
         if (description !== undefined) {
             Validator.checkArgumentType(description, "description", "string")
-        }
-        if (comment !== undefined) {
-            Validator.checkArgumentType(comment, "comment", "string");
         }
         Validator.checkArgumentType(surroundScopeId, "surroundScopeId", "string");
         this.#_id = Helper.uuid();
         this.#_className = Helper.classFromObject(this);
         this.description = description;
-        this.comment = comment;
         this.surroundScopeId = surroundScopeId;
+        this.comment = undefined;
     }
 
     get id() {
@@ -31,45 +28,49 @@ class Statement {
 }
 
 class Expression {
-    #_id;
-
-    constructor(theExpression, symbolIdList) {
-        Validator.checkArgumentType(theExpression, "theExpression", "string");
-        if (symbolIdList !== undefined) {
-            Validator.checkArgumentType(symbolIdList, "symbolIdList", "string", Validator.ARGUMENT_IS_ARRAY);
-        }
-        this.#_id = Helper.uuid();
-        this.theExpression = theExpression;
-        this.symbolIdList = symbolIdList;
-    }
-
-    get id() {
-        return this.#_id;
+    constructor(anExpression) {
+        Validator.checkArgumentType(anExpression, "anExpression", "string");
+        this.anExpression = anExpression;
     }
 }
 
 class Terminal extends Statement {
-    constructor(description, comment, surroundScopeId) {
-        super(description, comment, surroundScopeId);
+    constructor(description, surroundScopeId) {
+        super(description, surroundScopeId);
     }
 }
 
 class Start extends Terminal {
-    constructor(description, comment, surroundScopeId, idNext) {
-        Validator.checkArgumentType(idNext, "idNext", "string");
-        super(description, comment, surroundScopeId);
-        this.idNext = idNext;
+    constructor(description, surroundScopeId, nextStatementId) {
+        Validator.checkArgumentType(nextStatementId, "nextStatementId", "string");
+        super(description, surroundScopeId);
+        this.nextStatementId = nextStatementId;
     }
 }
 
 class Return extends Terminal {
-    constructor(description, comment, surroundScopeId, returnExpression) {
+    constructor(description, surroundScopeId, returnExpression) {
         if (returnExpression !== undefined) {
             Validator.checkArgumentType(returnExpression, "returnExpression", Expression);
         }
-        super(description, comment, surroundScopeId);
+        super(description, surroundScopeId);
         this.returnExpression = returnExpression;
     }
 }
 
-export {Statement, Expression, Terminal, Start, Return}
+class Boundary extends Statement {
+    constructor(description, surroundScopeId, nextStatementId) {
+        Validator.checkArgumentType(nextStatementId, "nextStatementId", "string");
+        super(description, surroundScopeId);
+        this.nextStatementId = nextStatementId;
+    }
+}
+
+export {
+    Statement,
+    Expression,
+    Terminal,
+    Start,
+    Return,
+    Boundary,
+}
