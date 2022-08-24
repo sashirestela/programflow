@@ -6,16 +6,20 @@ class Statement {
     #_id;
     #_className;
 
-    constructor(description, surroundScopeId) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        this.#_id = obj.id ?? Helper.uuid();
+        this.#_className = obj.className ?? Helper.classFromObject(this);
+        this.description = obj.description;
+        this.surroundScopeId = obj.surroundScopeId;
+        this.comment = undefined;
+    }
+
+    static validate(description, surroundScopeId) {
         if (description !== undefined) {
             Validator.checkArgumentType(description, "description", "string")
         }
         Validator.checkArgumentType(surroundScopeId, "surroundScopeId", "string");
-        this.#_id = Helper.uuid();
-        this.#_className = Helper.classFromObject(this);
-        this.description = description;
-        this.surroundScopeId = surroundScopeId;
-        this.comment = undefined;
     }
 
     get id() {
@@ -25,44 +29,132 @@ class Statement {
     get className() {
         return this.#_className;
     }
+
+    toJSON() {
+        return {
+            id: this.#_id,
+            className: this.#_className,
+            description: this.description,
+            surroundScopeId: this.surroundScopeId,
+            comment: this.comment
+        }
+    }
 }
 
 class Expression {
-    constructor(anExpression) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        this.anExpression = obj.anExpression;
+    }
+
+    static create(anExpression) {
         Validator.checkArgumentType(anExpression, "anExpression", "string");
-        this.anExpression = anExpression;
+        return new Expression({
+            anExpression: anExpression
+        });
+    }
+
+    toJSON() {
+        return {
+            anExpression: this.anExpression
+        }
+    }
+
+    static reviver(k,v) {
+        if (k.toLowerCase().endsWith("expression")) {
+            return new Expression(v);
+        } else {
+            return v;
+        }
     }
 }
 
 class Terminal extends Statement {
-    constructor(description, surroundScopeId) {
-        super(description, surroundScopeId);
+    constructor(obj) {
+        super(obj);
     }
 }
 
 class Start extends Terminal {
-    constructor(description, surroundScopeId, nextStatementId) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.nextStatementId = obj.nextStatementId;
+    }
+
+    static create(description, surroundScopeId, nextStatementId) {
+        Statement.validate(description, surroundScopeId);
         Validator.checkArgumentType(nextStatementId, "nextStatementId", "string");
-        super(description, surroundScopeId);
-        this.nextStatementId = nextStatementId;
+        return new Start({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            nextStatementId: nextStatementId
+        });
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                nextStatementId: this.nextStatementId
+            }
+        }
     }
 }
 
 class Return extends Terminal {
-    constructor(description, surroundScopeId, returnExpression) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.returnExpression = obj.returnExpression;
+    }
+
+    static create(description, surroundScopeId, returnExpression) {
+        Statement.validate(description, surroundScopeId);
         if (returnExpression !== undefined) {
             Validator.checkArgumentType(returnExpression, "returnExpression", Expression);
         }
-        super(description, surroundScopeId);
-        this.returnExpression = returnExpression;
+        return new Return({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            returnExpression: returnExpression
+        })
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                returnExpression: this.returnExpression
+            }
+        }
     }
 }
 
 class Boundary extends Statement {
-    constructor(description, surroundScopeId, nextStatementId) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.nextStatementId = obj.nextStatementId;
+    }
+
+    static create(description, surroundScopeId, nextStatementId) {
+        Statement.validate(description, surroundScopeId);
         Validator.checkArgumentType(nextStatementId, "nextStatementId", "string");
-        super(description, surroundScopeId);
-        this.nextStatementId = nextStatementId;
+        return new Boundary({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            nextStatementId: nextStatementId
+        });
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                nextStatementId: this.nextStatementId
+            }
+        }
     }
 }
 

@@ -6,12 +6,11 @@ class Symbol {
     #_id;
     #_className;
 
-    constructor(name, dataType) {
-        Validator.checkArgumentType(name, "name", "string");
-        this.#_id = Helper.uuid();
-        this.#_className = Helper.classFromObject(this);
-        this.name = name;
-        this.dataType = dataType;
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        this.#_id = obj.id ?? Helper.uuid();
+        this.#_className = obj.className ?? Helper.classFromObject(this);
+        this.name = obj.name;
     }
 
     get id() {
@@ -21,12 +20,36 @@ class Symbol {
     get className() {
         return this.#_className;
     }
+
+    toJSON() {
+        return {
+            id: this.#_id,
+            className: this.#_className,
+            name: this.name
+        }
+    }
 }
 
 class Variable extends Symbol {
-    constructor(name, dataType) {
+    constructor(obj) {
+        super(obj);
+        this.dataType = obj.dataType;
+    }
+
+    static create(name, dataType) {
+        Validator.checkArgumentType(name, "name", "string");
         Validator.checkArgumentType(dataType, "dataType", DataType);
-        super(name, dataType);
+        return new Variable({
+            name: name,
+            dataType: dataType
+        });
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            dataType: this.dataType
+        }
     }
 }
 
@@ -35,7 +58,17 @@ class Function extends Symbol {
     #_scopeId;
     #_isMain;
 
-    constructor(name, dataType, paramIdList, startStatementId, scopeId, isMain = false) {
+    constructor(obj) {
+        super(obj);
+        this.dataType = obj.dataType;
+        this.paramIdList = obj.paramIdList
+        this.#_startStatementId = obj.startStatementId;
+        this.#_scopeId = obj.scopeId;
+        this.#_isMain = obj.isMain;
+    }
+
+    static create(name, dataType, paramIdList, startStatementId, scopeId, isMain = false) {
+        Validator.checkArgumentType(name, "name", "string");
         if (dataType !== undefined) {
             Validator.checkArgumentType(dataType, "dataType", DataType);
         }
@@ -45,11 +78,26 @@ class Function extends Symbol {
         Validator.checkArgumentType(startStatementId, "startStatementId", "string");
         Validator.checkArgumentType(scopeId, "scopeId", "string");
         Validator.checkArgumentType(isMain, "isMain", "boolean");
-        super(name, dataType);
-        this.paramIdList = paramIdList
-        this.#_startStatementId = startStatementId;
-        this.#_scopeId = scopeId;
-        this.#_isMain = isMain;
+        return new Function({
+            name: name,
+            dataType: dataType,
+            paramIdList: paramIdList,
+            startStatementId: startStatementId,
+            scopeId: scopeId,
+            isMain: isMain
+        });
+    }
+
+    static createNoReturn(name, paramIdList, startStatementId, scopeId, isMain = false) {
+        return Function.create(name, undefined, paramIdList, startStatementId, scopeId, isMain);
+    }
+
+    static createNoParams(name, dataType, startStatementId, scopeId, isMain = false) {
+        return Function.create(name, dataType, undefined, startStatementId, scopeId, isMain);
+    }
+
+    static createNoReturnAndNoParams(name, startStatementId, scopeId, isMain = false) {
+        return Function.create(name, undefined, undefined, startStatementId, scopeId, isMain);
     }
 
     get startStatementId() {
@@ -80,6 +128,20 @@ class ScopeType {
         return this.#_type;
     }
 
+    toJSON() {
+        return {
+            type: this.#_type
+        }
+    }
+
+    static reviver(k,v) {
+        if (k === "scopeType") {
+            return new ScopeType(v.type);
+        } else {
+            return v;
+        }
+    }
+
     static list() {
         return Object.values(ScopeType);
     }
@@ -95,15 +157,23 @@ class Scope {
     #_scopeType;
     #_parentScopeId;
 
-    constructor(scopeType, parentScopeId) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        this.#_id = obj.id ?? Helper.uuid();
+        this.#_scopeType = obj.scopeType;
+        this.#_parentScopeId = obj.parentScopeId;
+        this.symbolMap = {};
+    }
+
+    static create(scopeType, parentScopeId) {
         Validator.checkArgumentType(scopeType, "scopeType", ScopeType);
         if (parentScopeId !== undefined) {
             Validator.checkArgumentType(parentScopeId, "parentScopeId", "string");
         }
-        this.#_id = Helper.uuid();
-        this.#_scopeType = scopeType;
-        this.#_parentScopeId = parentScopeId;
-        this.symbolMap = {};
+        return new Scope({
+            scopeType: scopeType,
+            parentScopeId: parentScopeId
+        });
     }
 
     get id() {
@@ -116,6 +186,15 @@ class Scope {
 
     get parentScopeId() {
         return this.#_parentScopeId;
+    }
+
+    toJSON() {
+        return {
+            id: this.#_id,
+            scopeType: this.#_scopeType,
+            parentScopeId: this.#_parentScopeId,
+            symbolMap: this.symbolMap
+        }
     }
 }
 

@@ -3,68 +3,186 @@ import { DataType } from './datatypes.js';
 import { Statement, Expression } from './statements.js';
 
 class Single extends Statement {
-    constructor(description, surroundScopeId, nextStatementId) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.nextStatementId = obj.nextStatementId;
+    }
+
+    static validate(description, surroundScopeId, nextStatementId) {
+        Statement.validate(description, surroundScopeId);
         Validator.checkArgumentType(nextStatementId, "nextStatementId", "string");
-        super(description, surroundScopeId);
-        this.nextStatementId = nextStatementId;
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                nextStatementId: this.nextStatementId
+            }
+        }
     }
 }
 
 class Declaration extends Single {
     #_variableId;
 
-    constructor(description, surroundScopeId, nextStatementId, variableId, initialize) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.#_variableId = obj.variableId;
+        this.initialize = obj.initialize;
+    }
+
+    static create(description, surroundScopeId, nextStatementId, variableId, initialize) {
+        Single.validate(description, surroundScopeId, nextStatementId);
         Validator.checkArgumentType(variableId, "variableId", "string");
         if (initialize !== undefined) {
             Validator.checkArgumentType(initialize, "initialize", Expression);
         }
-        super(description, surroundScopeId, nextStatementId);
-        this.#_variableId = variableId;
-        this.initialize = initialize;
+        return new Declaration({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            nextStatementId: nextStatementId,
+            variableId: variableId,
+            initialize: initialize
+        })
     }
 
     get variableId() {
         return this.#_variableId;
     }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                variableId: this.#_variableId,
+                initialize: this.initialize
+            }
+        }
+    }
 }
 
 class Assignment extends Single {
-    constructor(description, surroundScopeId, nextStatementId, variableId, assignValue) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.variableId = obj.variableId;
+        this.assignValue = obj.assignValue;
+    }
+
+    static create(description, surroundScopeId, nextStatementId, variableId, assignValue) {
+        Single.validate(description, surroundScopeId, nextStatementId);
         Validator.checkArgumentType(variableId, "variableId", "string");
         Validator.checkArgumentType(assignValue, "assignValue", Expression);
-        super(description, surroundScopeId, nextStatementId);
-        this.variableId = variableId;
-        this.assignValue = assignValue;
+        return new Assignment({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            nextStatementId: nextStatementId,
+            variableId: variableId,
+            assignValue: assignValue
+        })
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                variableId: this.variableId,
+                assignValue: this.assignValue
+            }
+        }
     }
 }
 
 class Invocation extends Single {
-    constructor(description, surroundScopeId, nextStatementId, call) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.call = obj.call;
+    }
+
+    static create(description, surroundScopeId, nextStatementId, call) {
+        Single.validate(description, surroundScopeId, nextStatementId);
         Validator.checkArgumentType(call, "call", Expression);
-        super(description, surroundScopeId, nextStatementId);
-        this.call = call;
+        return new Invocation({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            nextStatementId: nextStatementId,
+            call: call
+        })
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                call: this.call
+            }
+        }
     }
 }
 
 class Interaction extends Single {
-    constructor(description, surroundScopeId, nextStatementId) {
-        super(description, surroundScopeId, nextStatementId);
+    constructor(obj) {
+        super(obj);
     }
 }
 
 class Input extends Interaction {
-    constructor(description, surroundScopeId, nextStatementId, variableId) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.variableId = obj.variableId;
+    }
+
+    static create(description, surroundScopeId, nextStatementId, variableId) {
+        Single.validate(description, surroundScopeId, nextStatementId);
         Validator.checkArgumentType(variableId, "variableId", "string");
-        super(description, surroundScopeId, nextStatementId);
-        this.variableId = variableId;
+        return new Input({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            nextStatementId: nextStatementId,
+            variableId: variableId
+        });
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                variableId: this.variableId
+            }
+        }
     }
 }
 
 class Output extends Interaction {
-    constructor(description, surroundScopeId, nextStatementId, outExpression) {
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        super(obj);
+        this.outExpression = obj.outExpression;
+    }
+
+    static create(description, surroundScopeId, nextStatementId, outExpression) {
+        Single.validate(description, surroundScopeId, nextStatementId);
         Validator.checkArgumentType(outExpression, "outExpression", Expression);
-        super(description, surroundScopeId, nextStatementId);
-        this.outExpression = outExpression;
+        return new Output({
+            description: description,
+            surroundScopeId: surroundScopeId,
+            nextStatementId: nextStatementId,
+            outExpression: outExpression
+        });
+    }
+
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            ...{
+                outExpression: this.outExpression
+            }
+        }
     }
 }
 

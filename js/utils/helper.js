@@ -1,5 +1,8 @@
 class Helper {
     static classFromObject(object) {
+        if (typeof object !== 'object') {
+            throw new TypeError("Invalid argument type ('object' was expected).");
+        }
         return Object.getPrototypeOf(object).constructor.name;
     }
 

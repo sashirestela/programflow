@@ -2,7 +2,7 @@ import { Helper } from './helper.js';
 
 class ArgumentTypeError extends TypeError {
     constructor(parameterName, expectedType) {
-        const message = `Invalid argument type ('${expectedType}' was expected) for the '${parameterName}' parameter.`;
+        const message = `Missing argument or wrong type for the parameter '${parameterName}'. The expected type is '${expectedType}'.`;
         super(message);
         this.message = message;
     }
@@ -14,7 +14,10 @@ class Validator {
             throw new TypeError("Missing arguments 'parameterName' or 'expectedType'.");
         }
         if (typeof expectedType === 'function' || typeof expectedType === 'object') {
-            if (!(argumentValue instanceof expectedType)) {
+            if (!(argumentValue instanceof expectedType &&
+                (Helper.classFromObject(argumentValue) === "Object" ||
+                    Helper.classFromClass(expectedType) !== "Object"))
+            ) {
                 throw new ArgumentTypeError(parameterName, Helper.classFromClass(expectedType));
             }
         } else {
