@@ -1,3 +1,5 @@
+import crypto from 'crypto';
+
 class Helper {
     static classFromObject(object) {
         if (typeof object !== 'object') {

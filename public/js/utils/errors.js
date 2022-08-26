@@ -32,7 +32,9 @@ class Validator {
             this.#checkArgumentType(argumentValue, parameterName, expectedType);
         } else {
             this.#checkArgumentType(argumentValue, parameterName, Array);
-            this.#checkArgumentType(argumentValue.at(0), parameterName, expectedType);
+            if (argumentValue.length > 0) {
+                this.#checkArgumentType(argumentValue.at(0), parameterName, expectedType);
+            }
         }
     }
     static get ARGUMENT_IS_ARRAY() {
