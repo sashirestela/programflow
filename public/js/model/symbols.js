@@ -112,6 +112,17 @@ class Function extends Symbol {
         return this.#_isMain;
     }
 
+    toJSON() {
+        return {
+            ...super.toJSON(),
+            dataType: this.dataType,
+            paramIdList: this.paramIdList,
+            startStatementId: this.#_startStatementId,
+            scopeId: this.#_scopeId,
+            isMain: this.#_isMain
+        }
+    }
+
     static get IS_MAIN() {
         return true;
     }

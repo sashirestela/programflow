@@ -1,3 +1,4 @@
+import { describe, test, expect } from '@jest/globals';
 import { ArgumentTypeError, Validator } from '../../public/js/utils/errors.js';
 
 class AuxClass {
