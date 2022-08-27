@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import { ArgumentTypeError, Validator } from '../../public/js/utils/errors.js';
+import { ArgumentTypeError, Validator } from '../../src/utils/errors.js';
 
 class AuxClass {
     constructor(id) {

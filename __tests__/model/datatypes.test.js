@@ -1,6 +1,6 @@
 import { describe, test, expect } from '@jest/globals';
-import { DataType, Primitive, List, Matrix, Map } from '../../public/js/model/datatypes.js';
-import { ArgumentTypeError } from '../../public/js/utils/errors.js';
+import { DataType, Primitive, List, Matrix, Map } from '../../src/model/datatypes.js';
+import { ArgumentTypeError } from '../../src/utils/errors.js';
 import util from 'util';
 
 describe("Primitive class", () => {

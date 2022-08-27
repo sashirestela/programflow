@@ -2,7 +2,7 @@
   "name": "programflow",
   "version": "1.0.0",
   "description": "ProgramFlow",
-  "main": "index.js",
+  "main": "index.html",
   "scripts": {
     "test": "jest"
   },
@@ -21,6 +21,7 @@
     "@babel/preset-env": "^7.18.10",
     "babel-jest": "^29.0.0",
     "jest": "^29.0.0",
-    "jest-environment-jsdom": "^29.0.0"
+    "jest-environment-jsdom": "^29.0.0",
+    "npm": "^8.18.0"
   }
 }

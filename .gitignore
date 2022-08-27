@@ -1,5 +1,6 @@
 node_modules/
 coverage
 .breakpoints
+.config
 .replit
 replit.nix

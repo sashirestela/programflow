@@ -1,4 +1,9 @@
-import crypto from 'crypto';
+let crypto;
+try {
+    crypto = require('crypto');
+} catch(e) {
+    crypto = window.crypto;
+}
 
 class Helper {
     static classFromObject(object) {

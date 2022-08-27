@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import { Helper } from '../../public/js/utils/helper.js';
+import { Helper } from '../../src/utils/helper.js';
 
 class TestClass {
     constructor(a,b) {
@@ -30,6 +30,15 @@ describe("Helper class", () => {
         });
     });
     describe("uuid method", () => {
+        test("If randomUUID exist, does bot execute require.", () => {
+            let window = {
+                crypto: {
+                    exists: true,
+                    randomUUID: () => {}
+                }
+            };
+            
+        });
         test("When invoqued, a value is returned.", () => {
             const id = Helper.uuid();
             expect(id).toBeDefined();

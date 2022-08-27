@@ -21,12 +21,12 @@ class Application {
     }
 
     #init() {
-        const functionScope = new Scope(ScopeType.Function);
-        const returnStatement = new Return("End", functionScope.id, undefined);
-        const startStatement = new Start("Main", functionScope.id, returnStatement.id);
-        const mainFunction = new Function("main", undefined, undefined, startStatement.id, functionScope.id, Function.IS_MAIN);
+        const applicationScope = Scope.create(ScopeType.Application);
+        const functionScope = Scope.create(ScopeType.Function, applicationScope.id);
+        const returnStatement = Return.create("End", functionScope.id, undefined);
+        const startStatement = Start.create("Main", functionScope.id, returnStatement.id);
+        const mainFunction = Function.createNoReturnAndNoParams("main", startStatement.id, functionScope.id, Function.IS_MAIN);
 
-        const applicationScope = new Scope(ScopeType.Application);
         this.#_scopeId = applicationScope.id;
         this.functionIdList.push(mainFunction.id);
     }

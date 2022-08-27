@@ -1,7 +1,7 @@
 import { beforeAll, afterAll, describe, test, expect, jest } from '@jest/globals';
-import { Primitive } from '../../public/js/model/datatypes.js';
-import { Variable, Function, ScopeType, Scope } from '../../public/js/model/symbols.js';
-import { ArgumentTypeError } from '../../public/js/utils/errors.js';
+import { Primitive } from '../../src/model/datatypes.js';
+import { Variable, Function, ScopeType, Scope } from '../../src/model/symbols.js';
+import { ArgumentTypeError } from '../../src/utils/errors.js';
 import util from 'util';
 import crypto from 'crypto';
 
