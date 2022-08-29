@@ -1,5 +1,4 @@
 import { Validator } from './../utils/errors.js';
-import { DataType } from './datatypes.js';
 import { Statement, Expression } from './statements.js';
 
 class Single extends Statement {

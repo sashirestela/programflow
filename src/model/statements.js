@@ -1,6 +1,5 @@
 import { Helper } from './../utils/helper.js';
 import { Validator } from './../utils/errors.js';
-import { DataType } from './datatypes.js';
 
 class Statement {
     #_id;

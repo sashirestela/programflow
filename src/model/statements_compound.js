@@ -1,5 +1,5 @@
 import { Validator } from './../utils/errors.js';
-import { DataType, List } from './datatypes.js';
+import { List } from './datatypes.js';
 import { Statement, Expression } from './statements.js';
 
 class Compound extends Statement {
