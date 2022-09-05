@@ -1,156 +1,96 @@
 import { Helper } from './../utils/helper.js';
-import { Validator } from './../utils/errors.js';
+import { Validator, Cardinality } from './../utils/validator.js';
 import { DataType } from './datatypes.js';
 
 class Symbol {
-    #_id;
-    #_className;
+    id = Helper.uuid();
+    className = Helper.classFromObject(this);
+    name = null;
+    dataType = null;
 
     constructor(obj) {
         Validator.checkArgumentType(obj, "obj", Object);
-        this.#_id = obj.id ?? Helper.uuid();
-        this.#_className = obj.className ?? Helper.classFromObject(this);
-        this.name = obj.name;
+        Validator.checkArgumentType(obj.name, "obj.name", "string");
+        Validator.checkArgumentTypeIfExists(obj.dataType, "obj.dataType", DataType);
+        Object.assign(this, obj);
     }
 
-    get id() {
-        return this.#_id;
-    }
-
-    get className() {
-        return this.#_className;
-    }
-
-    toJSON() {
-        return {
-            id: this.#_id,
-            className: this.#_className,
-            name: this.name
+    static reviver(k,v) {
+        switch (v.className) {
+            case "Variable":
+                return new Variable(v);
+            case "Function":
+                return new Function(v);
+            default:
+                return v;
         }
+    }
+
+    static parse(jsonString) {
+        return JSON.parse(jsonString, Helper.pipeRevivers(
+            DataType.reviver, Symbol.reviver));
     }
 }
 
 class Variable extends Symbol {
     constructor(obj) {
         super(obj);
-        this.dataType = obj.dataType;
-    }
-
-    static create(name, dataType) {
-        Validator.checkArgumentType(name, "name", "string");
-        Validator.checkArgumentType(dataType, "dataType", DataType);
-        return new Variable({
-            name: name,
-            dataType: dataType
-        });
-    }
-
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            dataType: this.dataType
-        }
+        Validator.checkArgumentCardinality(obj.dataType, "obj.dataType", Cardinality.One);
     }
 }
 
 class Function extends Symbol {
-    #_startStatementId;
-    #_scopeId;
-    #_isMain;
+    paramIdList = [];
+    startStatementId = null;
+    scopeId = null;
+    isMain = false;
 
     constructor(obj) {
         super(obj);
-        this.dataType = obj.dataType;
-        this.paramIdList = obj.paramIdList
-        this.#_startStatementId = obj.startStatementId;
-        this.#_scopeId = obj.scopeId;
-        this.#_isMain = obj.isMain;
+        Validator.checkArgumentTypeIfExists(obj.paramIdList, "obj.paramIdList", "string", Validator.ARRAY);
+        Validator.checkArgumentType(obj.startStatementId, "obj.startStatementId", "string");
+        Validator.checkArgumentType(obj.scopeId, "obj.scopeId", "string");
+        Validator.checkArgumentTypeIfExists(obj.isMain, "obj.isMain", "boolean");
+        Object.assign(this, obj);
     }
 
-    static create(name, dataType, paramIdList, startStatementId, scopeId, isMain = false) {
-        Validator.checkArgumentType(name, "name", "string");
-        if (dataType !== undefined) {
-            Validator.checkArgumentType(dataType, "dataType", DataType);
-        }
-        if (paramIdList !== undefined) {
-            Validator.checkArgumentType(paramIdList, "paramIdList", "string", Validator.ARGUMENT_IS_ARRAY);
-        }
-        Validator.checkArgumentType(startStatementId, "startStatementId", "string");
-        Validator.checkArgumentType(scopeId, "scopeId", "string");
-        Validator.checkArgumentType(isMain, "isMain", "boolean");
-        return new Function({
-            name: name,
-            dataType: dataType,
-            paramIdList: paramIdList,
-            startStatementId: startStatementId,
-            scopeId: scopeId,
-            isMain: isMain
-        });
-    }
-
-    static createNoReturn(name, paramIdList, startStatementId, scopeId, isMain = false) {
-        return Function.create(name, undefined, paramIdList, startStatementId, scopeId, isMain);
-    }
-
-    static createNoParams(name, dataType, startStatementId, scopeId, isMain = false) {
-        return Function.create(name, dataType, undefined, startStatementId, scopeId, isMain);
-    }
-
-    static createNoReturnAndNoParams(name, startStatementId, scopeId, isMain = false) {
-        return Function.create(name, undefined, undefined, startStatementId, scopeId, isMain);
-    }
-
-    get startStatementId() {
-        return this.#_startStatementId;
-    }
-
-    get scopeId() {
-        return this.#_scopeId;
-    }
-
-    get isMain() {
-        return this.#_isMain;
-    }
-
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            dataType: this.dataType,
-            paramIdList: this.paramIdList,
-            startStatementId: this.#_startStatementId,
-            scopeId: this.#_scopeId,
-            isMain: this.#_isMain
-        }
-    }
-
-    static get IS_MAIN() {
+    static get MAIN() {
         return true;
     }
 }
 
-class ScopeType {
-    #_type;
+class Scope {
+    id = Helper.uuid();
+    scopeType = null;
+    parentScopeId = null;
+    symbolMap = {};
 
-    constructor(type) {
-        this.#_type = type;
-    }
-
-    get type() {
-        return this.#_type;
-    }
-
-    toJSON() {
-        return {
-            type: this.#_type
-        }
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        Validator.checkArgumentType(obj.scopeType, "obj.scopeType", ScopeType);
+        Validator.checkArgumentTypeIfExists(obj.parentScopeId, "obj.parentScopeId", "string");
+        Object.assign(this, obj);
     }
 
     static reviver(k,v) {
-        if (k === "scopeType") {
-            return new ScopeType(v.type);
-        } else {
-            return v;
-        }
+        return (v !== null && v.scopeType !== undefined ? new Scope(v) : v);
+    }
+
+    static parse(jsonString) {
+        return JSON.parse(jsonString, Helper.pipeRevivers(
+            ScopeType.reviver, Scope.reviver));
+    }
+}
+
+class ScopeType {
+    type;
+
+    constructor(type) {
+        this.type = type;
+    }
+
+    static reviver(k,v) {
+        return (k === "scopeType" ? new ScopeType(v.type) : v);
     }
 
     static list() {
@@ -163,56 +103,10 @@ class ScopeType {
     static CompoundFork = new ScopeType("CompoundFork");
 }
 
-class Scope {
-    #_id;
-    #_scopeType;
-    #_parentScopeId;
-
-    constructor(obj) {
-        Validator.checkArgumentType(obj, "obj", Object);
-        this.#_id = obj.id ?? Helper.uuid();
-        this.#_scopeType = obj.scopeType;
-        this.#_parentScopeId = obj.parentScopeId;
-        this.symbolMap = {};
-    }
-
-    static create(scopeType, parentScopeId) {
-        Validator.checkArgumentType(scopeType, "scopeType", ScopeType);
-        if (parentScopeId !== undefined) {
-            Validator.checkArgumentType(parentScopeId, "parentScopeId", "string");
-        }
-        return new Scope({
-            scopeType: scopeType,
-            parentScopeId: parentScopeId
-        });
-    }
-
-    get id() {
-        return this.#_id;
-    }
-
-    get scopeType() {
-        return this.#_scopeType;
-    }
-
-    get parentScopeId() {
-        return this.#_parentScopeId;
-    }
-
-    toJSON() {
-        return {
-            id: this.#_id,
-            scopeType: this.#_scopeType,
-            parentScopeId: this.#_parentScopeId,
-            symbolMap: this.symbolMap
-        }
-    }
-}
-
 export {
     Symbol,
     Variable,
     Function,
-    ScopeType,
     Scope,
-};
+    ScopeType
+}

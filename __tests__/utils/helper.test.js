@@ -30,18 +30,37 @@ describe("Helper class", () => {
         });
     });
     describe("uuid method", () => {
-        test("If randomUUID exist, does bot execute require.", () => {
-            let window = {
-                crypto: {
-                    exists: true,
-                    randomUUID: () => {}
-                }
-            };
-            
-        });
         test("When invoqued, a value is returned.", () => {
             const id = Helper.uuid();
             expect(id).toBeDefined();
+        });
+    });
+    describe("pipeRevivers function", () => {
+        test("Stringified object is parsed and transformed by a sequence of functions.", () => {
+            const obj = {
+                value:{
+                    gender: "Male",
+                    firstName: "Peter",
+                    lastName: "Parker",
+                    age: 25
+                }
+            };
+            const funcSalutation = (k,v) => {
+                if (v.gender !== undefined) {
+                    v.salutation = v.gender === "Male" ? "Mr." : "Ms.";
+                }
+                return v;
+            };
+            const funcAdult = (k,v) => {
+                if (v.age !== undefined) {
+                    v.adult = v.age > 18 ? true : false;
+                }
+                return v;
+            };
+            const str = JSON.stringify(obj);
+            const result = JSON.parse(str, Helper.pipeRevivers(funcSalutation, funcAdult));
+            expect(result.value.salutation).toBe("Mr.");
+            expect(result.value.adult).toBe(true);
         });
     });
 });

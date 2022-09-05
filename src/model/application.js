@@ -1,35 +1,22 @@
 import { Helper } from './../utils/helper.js';
-import { Validator } from './../utils/errors.js';
-import { ScopeType, Scope, Function } from './symbols.js';
-import { Start, Return } from './statements.js';
+import { Validator, Cardinality } from './../utils/validator.js';
 
 class Application {
-    #_id;
-    #_scopeId;
+    id = Helper.uuid();
+    name = null;
+    scopeId = null;
+    functionIdList = [];
 
-    constructor(name) {
-        Validator.checkArgumentType(name, "name", "string");
-        this.#_id = Helper.uuid();
-        this.name = name;
-        this.#_scopeId = undefined;
-        this.functionIdList = [];
-        this.#init();
-    }
-
-    get scopeId() {
-        return this.#_scopeId;
-    }
-
-    #init() {
-        const applicationScope = Scope.create(ScopeType.Application);
-        const functionScope = Scope.create(ScopeType.Function, applicationScope.id);
-        const returnStatement = Return.create("End", functionScope.id, undefined);
-        const startStatement = Start.create("Main", functionScope.id, returnStatement.id);
-        const mainFunction = Function.createNoReturnAndNoParams("main", startStatement.id, functionScope.id, Function.IS_MAIN);
-
-        this.#_scopeId = applicationScope.id;
-        this.functionIdList.push(mainFunction.id);
+    constructor(obj) {
+        Validator.checkArgumentType(obj, "obj", Object);
+        Validator.checkArgumentType(obj.name, "obj.name", "string");
+        Validator.checkArgumentType(obj.scopeId, "obj.scopeId", "string");
+        Validator.checkArgumentType(obj.functionIdList, "obj.functionIdList", "string", Validator.ARRAY);
+        Validator.checkArgumentCardinality(obj.functionIdList, "obj.functionIdList", Cardinality.AtLeastOne);
+        Object.assign(this, obj);
     }
 }
 
-export { Application };
+export {
+    Application
+}

@@ -1,8 +1,9 @@
-import { Application } from './model/application.js';
+import { ApplicationService } from './service/application_service.js';
 
 class ProgramFlow {
     constructor() {
-        this.application = new Application("Main Application");
+        const service = new ApplicationService();
+        this.app = service.createDefaultApplication();
     }
 }
 

@@ -1,24 +1,18 @@
 import { Helper } from './../utils/helper.js';
-import { Validator } from './../utils/errors.js';
+import { Validator } from './../utils/validator.js';
 
 class DataType {
-    #_className;
+    className = Helper.classFromObject(this);
 
     constructor(obj) {
-        this.#_className = obj.className ?? Helper.classFromObject(this);
-    }
-
-    get className() {
-        return this.#_className;
-    }
-
-    toJSON() {
-        return {
-            className: this.#_className
-        }
+        Validator.checkArgumentType(obj, "obj", Object);
+        Object.assign(this, obj);
     }
 
     static reviver(k,v) {
+        if (v === null || v.className === null) {
+            return v;
+        }
         switch (v.className) {
             case 'Primitive':
                 return new Primitive(v);
@@ -29,48 +23,28 @@ class DataType {
             case 'Map':
                 return new Map(v);
             default:
-                return v;;
+                return v;
         }
     }
 }
 
 class Primitive extends DataType {
-    #_type
+    type
 
     constructor(obj) {
-        Validator.checkArgumentType(obj, "obj", Object);
         super(obj);
-        this.#_type = obj.type;
-    }
-
-    static create(type) {
-        Validator.checkArgumentType(type, "type", "string");
-        return new Primitive({
-            type: type
-        });
-    }
-
-    get type() {
-        return this.#_type;
-    }
-
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            ...{
-                type: this.#_type
-            }
-        }
+        Validator.checkArgumentType(obj.type, "obj.type", "string");
+        Object.assign(this, obj);
     }
 
     static list() {
         return Object.values(Primitive);
     }
 
-    static Boolean = Primitive.create("Boolean");
-    static String = Primitive.create("String");
-    static Integer = Primitive.create("Integer");
-    static Real = Primitive.create("Real");
+    static Boolean = new Primitive({type:"Boolean"});
+    static String = new Primitive({type:"String"});
+    static Integer = new Primitive({type:"Integer"});
+    static Real = new Primitive({type:"Real"});
 }
 
 class Collection extends DataType {
@@ -80,108 +54,36 @@ class Collection extends DataType {
 }
 
 class List extends Collection {
-    #_element;
+    element;
 
     constructor(obj) {
-        Validator.checkArgumentType(obj, "obj", Object);
         super(obj);
-        this.#_element = obj.element;
-    }
-
-    static create(element) {
-        Validator.checkArgumentType(element, "element", DataType);
-        return new List({
-            element: element
-        });
-    }
-
-    get element() {
-        return this.#_element;
-    }
-
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            ...{
-                element: this.#_element
-            }
-        }
+        Validator.checkArgumentType(obj.element, "obj.element", DataType);
+        Object.assign(this, obj);
     }
 }
 
 class Matrix extends Collection {
-    #_element;
-    #_innerElement;
+    innerElement;
+    element;
 
     constructor(obj) {
-        Validator.checkArgumentType(obj, "obj", Object);
         super(obj);
-        this.#_element = new List(obj);
-        this.#_innerElement = this.element.element;
-    }
-
-    static create(element) {
-        Validator.checkArgumentType(element, "element", DataType);
-        return new Matrix({
-            element: element
-        });
-    }
-
-    get element() {
-        return this.#_element;
-    }
-
-    get innerElement() {
-        return this.#_innerElement;
-    }
-
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            ...{
-                element: this.#_element,
-                innerElement: this.#_innerElement
-            }
-        }
+        Validator.checkArgumentType(obj.innerElement, "obj.innerElement", DataType);
+        Object.assign(this, obj);
+        this.element = obj.element ?? new List({element: this.innerElement});
     }
 }
 
 class Map extends Collection {
-    #_key;
-    #_value;
+    key;
+    value;
 
     constructor(obj) {
-        Validator.checkArgumentType(obj, "obj", Object);
         super(obj);
-        this.#_key = obj.key;
-        this.#_value = obj.value;
-    }
-
-    static create(key, value) {
-        Validator.checkArgumentType(key, "key", DataType)
-        Validator.checkArgumentType(value, "value", DataType)
-        return new Map({
-            key: key,
-            value: value
-        });
-    }
-
-    get key() {
-        return this.#_key;
-    }
-
-    get value() {
-        return this.#_value;
-    }
-
-    toJSON() {
-        return {
-            ...super.toJSON(),
-            ...{
-                key: this.#_key,
-                value: this.#_value
-            }
-        }
+        Validator.checkArgumentType(obj.key, "obj.key", DataType);
+        Validator.checkArgumentType(obj.value, "obj.value", DataType);
+        Object.assign(this, obj);
     }
 }
 
@@ -191,5 +93,5 @@ export {
     Collection,
     List,
     Matrix,
-    Map,
-};
+    Map
+}

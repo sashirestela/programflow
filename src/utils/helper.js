@@ -23,6 +23,10 @@ class Helper {
     static uuid() {
         return crypto.randomUUID();
     }
+
+    static pipeRevivers(...fns) {
+        return fns.reduce((f, g) => (k, v) => g(k, f(k,v)));
+    };
 }
 
 export { Helper };
