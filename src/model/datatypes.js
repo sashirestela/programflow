@@ -38,7 +38,11 @@ class Primitive extends DataType {
     }
 
     static list() {
-        return Object.values(Primitive);
+        return Object.values(Primitive).map(e => e.type);
+    }
+
+    static find(type) {
+        return Object.entries(Primitive).find(e => e[0] === type)[1];
     }
 
     static Boolean = new Primitive({type:"Boolean"});

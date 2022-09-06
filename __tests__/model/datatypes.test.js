@@ -18,7 +18,16 @@ describe("Primitive class", () => {
     describe("list method", () => {
         test("Four predefined objects are listed.", () => {
             const primitives = Primitive.list();
-            expect(primitives.length).toBe(4);
+            expect(primitives[0]).toBe("Boolean");
+            expect(primitives[1]).toBe("String");
+            expect(primitives[2]).toBe("Integer");
+            expect(primitives[3]).toBe("Real");
+        });
+    });
+    describe("find method", () => {
+        test("A Primitive object is returned accordingly the type", () => {
+            const result = Primitive.find("Integer");
+            expect(util.isDeepStrictEqual(result, Primitive.Integer)).toBe(true);
         });
     });
 });
