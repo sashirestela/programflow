@@ -1,5 +1,5 @@
 import { Helper } from './../utils/helper.js';
-import { Validator } from './../utils/validator.js';
+import { Validator, UnexpectedValueError } from './../utils/validator.js';
 
 class DataType {
     className = Helper.classFromObject(this);
@@ -7,6 +7,30 @@ class DataType {
     constructor(obj) {
         Validator.checkArgumentType(obj, "obj", Object);
         Object.assign(this, obj);
+    }
+
+    static categories = [];
+
+    static categoriesOf(parent) {
+        parent = parent ?? "DataType";
+        return DataType.categories.filter(t => t.parentType === parent).map(t => t.name);
+    }
+
+    static create(category, type1, type2) {
+        const dataType1 = Primitive.find(type1);
+        switch (category) {
+            case 'Primitive':
+                return dataType1;
+            case 'List':
+                return new List({element: dataType1});
+            case 'Matrix':
+                return new Matrix({innerElement: dataType1});
+            case 'Map':
+                const dataType2 = Primitive.find(type2);
+                return new Map({key: dataType1, value: dataType2});
+            default:
+                throw new UnexpectedValueError(`Category '${category}' does not exist.`);
+        }
     }
 
     static reviver(k,v) {
@@ -37,12 +61,21 @@ class Primitive extends DataType {
         Object.assign(this, obj);
     }
 
+    static {
+        DataType.categories.push({name: this.name, parentType: Object.getPrototypeOf(this).name});
+    }
+
     static list() {
         return Object.values(Primitive).map(e => e.type);
     }
 
     static find(type) {
-        return Object.entries(Primitive).find(e => e[0] === type)[1];
+        let entry = Object.entries(Primitive).find(e => e[0] === type);
+        if (entry !== undefined) {
+            return entry[1];
+        } else {
+            throw new UnexpectedValueError(`Type '${type}' does not exist.`);
+        }
     }
 
     static Boolean = new Primitive({type:"Boolean"});
@@ -55,6 +88,10 @@ class Collection extends DataType {
     constructor(obj) {
         super(obj);
     }
+
+    static {
+        DataType.categories.push({name: this.name, parentType: Object.getPrototypeOf(this).name});
+    }
 }
 
 class List extends Collection {
@@ -64,6 +101,10 @@ class List extends Collection {
         super(obj);
         Validator.checkArgumentType(obj.element, "obj.element", DataType);
         Object.assign(this, obj);
+    }
+
+    static {
+        DataType.categories.push({name: this.name, parentType: Object.getPrototypeOf(this).name});
     }
 }
 
@@ -77,6 +118,10 @@ class Matrix extends Collection {
         Object.assign(this, obj);
         this.element = obj.element ?? new List({element: this.innerElement});
     }
+
+    static {
+        DataType.categories.push({name: this.name, parentType: Object.getPrototypeOf(this).name});
+    }
 }
 
 class Map extends Collection {
@@ -88,6 +133,10 @@ class Map extends Collection {
         Validator.checkArgumentType(obj.key, "obj.key", DataType);
         Validator.checkArgumentType(obj.value, "obj.value", DataType);
         Object.assign(this, obj);
+    }
+
+    static {
+        DataType.categories.push({name: this.name, parentType: Object.getPrototypeOf(this).name});
     }
 }
 

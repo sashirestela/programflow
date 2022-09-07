@@ -1,6 +1,6 @@
 import { describe, test, expect } from '@jest/globals';
 import { DataType, Primitive, List, Matrix, Map } from '../../src/model/datatypes.js';
-import { ArgumentTypeError } from '../../src/utils/validator.js';
+import { ArgumentTypeError, UnexpectedValueError } from '../../src/utils/validator.js';
 import { Helper } from '../../src/utils/helper.js';
 import util from 'util';
 
@@ -25,9 +25,12 @@ describe("Primitive class", () => {
         });
     });
     describe("find method", () => {
-        test("A Primitive object is returned accordingly the type", () => {
+        test("If an existing type is passed, a Primitive object is returned.", () => {
             const result = Primitive.find("Integer");
             expect(util.isDeepStrictEqual(result, Primitive.Integer)).toBe(true);
+        });
+        test("If a no existing type is passed, an Error is raised.", () => {
+            expect(() => Primitive.find("Complex")).toThrow(UnexpectedValueError);
         });
     });
 });
@@ -74,6 +77,47 @@ describe("Map class", () => {
 });
 
 describe("DataType class", () => {
+    describe("categoriesOf method", () => {
+        test("Two predefined main data type names are listed.", () => {
+            const mainCategories = DataType.categoriesOf();
+            expect(mainCategories[0]).toBe("Primitive");
+            expect(mainCategories[1]).toBe("Collection");
+        });
+        test("Three predefined Collection data type names are listed.", () => {
+            const collCategories = DataType.categoriesOf("Collection");
+            expect(collCategories[0]).toBe("List");
+            expect(collCategories[1]).toBe("Matrix");
+            expect(collCategories[2]).toBe("Map");
+        });
+    });
+    describe("create method", () => {
+        test("If correct values to create a Primitive are passed, the object is created.", () => {
+            const expected = Primitive.Real;
+            const result = DataType.create("Primitive", "Real");
+            expect(util.isDeepStrictEqual(expected, result)).toBe(true);
+        });
+        test("If correct values to create a List are passed, the object is created.", () => {
+            const expected = new List({element: Primitive.Boolean});
+            const result = DataType.create("List", "Boolean");
+            expect(util.isDeepStrictEqual(expected, result)).toBe(true);
+        });
+        test("If correct values to create a Matrix are passed, the object is created.", () => {
+            const expected = new Matrix({innerElement: Primitive.Integer});
+            const result = DataType.create("Matrix", "Integer");
+            expect(util.isDeepStrictEqual(expected, result)).toBe(true);
+        });
+        test("If correct values to create a Map are passed, the object is created.", () => {
+            const expected = new Map({key: Primitive.String, value: Primitive.Integer});
+            const result = DataType.create("Map", "String", "Integer");
+            expect(util.isDeepStrictEqual(expected, result)).toBe(true);
+        });
+        test("If wrong values to create a Data Type are passed, an Error is raised.", () => {
+            expect(() => DataType.create("Map", "String", "Complex")).toThrow(UnexpectedValueError);
+        });
+        test("If a wrong category is passed, an Error is raised.", () => {
+            expect(() => DataType.create("Array", "Real")).toThrow(UnexpectedValueError);
+        });
+    });
     describe("reviver method", () => {
         test("Verify Primitive is revived.", () => {
             const original = {data: Primitive.Integer};

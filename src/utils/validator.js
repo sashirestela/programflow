@@ -92,6 +92,12 @@ class ArgumentCardinalityError extends TypeError {
     }
 }
 
+class UnexpectedValueError extends TypeError {
+    constructor(message) {
+        super(message);
+    }
+}
+
 class GeneralConditionError extends Error {
     constructor(message) {
         super(message);
@@ -124,6 +130,7 @@ export {
     Validator,
     ArgumentTypeError,
     ArgumentCardinalityError,
+    UnexpectedValueError,
     GeneralConditionError,
     Cardinality
 }
