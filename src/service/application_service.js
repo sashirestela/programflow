@@ -48,7 +48,7 @@ class ApplicationService {
         }
     }
 
-    createDeclarationStatement(path, scopeId, varInfo, expr) {
+    createDeclarationStatement(path, scope, varInfo, expr) {
         const dataType = dt.DataType.create(
             varInfo.category,
             varInfo.type1, 
@@ -66,13 +66,14 @@ class ApplicationService {
             nextStatementId: path.nextStatementId
         });
         const declarationStmt = new stmt.Declaration({
-            surroundScopeId: scopeId,
+            surroundScopeId: scope.id,
             pathIdList: [newPath.id],
             variableIdList: [variable.id],
             expressionList: [expression]
         });
         newPath.prevStatementId = declarationStmt.id;
         path.nextStatementId = declarationStmt.id;
+        scope.symbolMap[variable.name] = variable;
         return {
             variable: variable,
             declarationStmt: declarationStmt,
@@ -81,10 +82,10 @@ class ApplicationService {
         }
     }
 
-    createIfElseStatement(path, scopeId, expr) {
+    createIfElseStatement(path, scope, expr) {
         const ifElseScope = new symb.Scope({
             scopeType: symb.ScopeType.CompoundFork,
-            parentScopeId: scopeId
+            parentScopeId: scope.id
         })
         const expression = expr !== undefined
             ? new stmt.Expression(expr)
@@ -111,7 +112,7 @@ class ApplicationService {
             scopeId: ifElseScope.id
         });
         const auxStmt = new stmt.Boundary({
-            surroundScopeId: ifElseScope.id,
+            surroundScopeId: scope.id,
             pathIdList: [auxPath.id],
             relatedId: ifElseStmt.id
         });
