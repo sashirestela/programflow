@@ -27,7 +27,7 @@ class ProgramFlow {
         
         const declaration = service.createDeclarationStatement(
             this.info.path.at(0),
-            this.info.scope.at(1),
+            this.getScopeIdFromPathNextStmt(this.info.path.at(0)),
             {name: "firstName", category: "Primitive", type1: "String"},
             "Sashir"
         );
@@ -35,6 +35,24 @@ class ProgramFlow {
         this.info.variable.push(declaration.variable);
         this.info.path[0] = declaration.path;
         this.info.path.push(declaration.newPath);
+
+        const ifElse = service.createIfElseStatement(
+            this.info.path.at(1),
+            this.getScopeIdFromPathNextStmt(this.info.path.at(1)),
+            "firstName === 'Samir'"
+        );
+        this.info.scope.push(ifElse.ifElseScope);
+        this.info.statement.push(ifElse.ifElseStmt);
+        this.info.statement.push(ifElse.auxStmt);
+        this.info.path[1] = ifElse.path;
+        this.info.path.push(ifElse.truePath);
+        this.info.path.push(ifElse.falsePath);
+        this.info.path.push(ifElse.auxPath);
+    }
+
+    getScopeIdFromPathNextStmt(path) {
+        let nextStmt = this.info.statement.find(s => s.id === path.nextStatementId);
+        return nextStmt.surroundScopeId;
     }
 }
 

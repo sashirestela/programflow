@@ -18,7 +18,7 @@ class ApplicationService {
             surroundScopeId: funcScope.id
         });
         const path = new stmt.Path({
-            prevStatementId: returnStmt.id,
+            prevStatementId: "temp",
             nextStatementId: returnStmt.id
         });
         const startStmt = new stmt.Start({
@@ -43,12 +43,12 @@ class ApplicationService {
             funcScope: funcScope,
             mainFunc: mainFunc,
             startStmt: startStmt,
-            path: path,
-            returnStmt: returnStmt
+            returnStmt: returnStmt,
+            path: path
         }
     }
 
-    createDeclarationStatement(path, scope, varInfo, expr) {
+    createDeclarationStatement(path, scopeId, varInfo, expr) {
         const dataType = dt.DataType.create(
             varInfo.category,
             varInfo.type1, 
@@ -62,11 +62,11 @@ class ApplicationService {
             ? new stmt.Expression(expr)
             : null;
         const newPath = new stmt.Path({
-            prevStatementId: path.nextStatementId,
+            prevStatementId: "temp",
             nextStatementId: path.nextStatementId
         });
         const declarationStmt = new stmt.Declaration({
-            surroundScopeId: scope.id,
+            surroundScopeId: scopeId,
             pathIdList: [newPath.id],
             variableIdList: [variable.id],
             expressionList: [expression]
@@ -77,6 +77,58 @@ class ApplicationService {
             variable: variable,
             declarationStmt: declarationStmt,
             newPath: newPath,
+            path: path
+        }
+    }
+
+    createIfElseStatement(path, scopeId, expr) {
+        const ifElseScope = new symb.Scope({
+            scopeType: symb.ScopeType.CompoundFork,
+            parentScopeId: scopeId
+        })
+        const expression = expr !== undefined
+            ? new stmt.Expression(expr)
+            : null;
+        const truePath = new stmt.Path({
+            case: new stmt.Expression("true"),
+            prevStatementId: "temp",
+            nextStatementId: "temp"
+        });
+        const falsePath = new stmt.Path({
+            case: new stmt.Expression("false"),
+            prevStatementId: "temp",
+            nextStatementId: "temp"
+        });
+        const auxPath = new stmt.Path({
+            prevStatementId: "temp",
+            nextStatementId: path.nextStatementId
+        });
+        const ifElseStmt = new stmt.IfElse({
+            surroundScopeId: ifElseScope.id,
+            pathIdList: [truePath.id, falsePath.id],
+            testExpression: expression,
+            relatedId: "temp",
+            scopeId: ifElseScope.id
+        });
+        const auxStmt = new stmt.Boundary({
+            surroundScopeId: ifElseScope.id,
+            pathIdList: [auxPath.id],
+            relatedId: ifElseStmt.id
+        });
+        ifElseStmt.relatedId = auxStmt.id;
+        auxPath.prevStatementId = auxStmt.id;
+        truePath.prevStatementId = ifElseStmt.id;
+        truePath.nextStatementId = auxStmt.id;
+        falsePath.prevStatementId = ifElseStmt.id;
+        falsePath.nextStatementId = auxStmt.id;
+        path.nextStatementId = ifElseStmt.id;
+        return {
+            ifElseScope: ifElseScope,
+            ifElseStmt: ifElseStmt,
+            auxStmt: auxStmt,
+            truePath: truePath,
+            falsePath: falsePath,
+            auxPath: auxPath,
             path: path
         }
     }
