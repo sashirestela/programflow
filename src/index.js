@@ -1,140 +1,125 @@
-import * as joint from 'jointjs'
+import { Diagram } from './view/diagram.js'
+import * as shape from './view/shapes.js'
+import { FlowLine } from './view/flowline.js'
 
-const namespace = joint.shapes
+const w = 100
+const h = 40
+const d = 80
+let x = 300
+let y = 50
 
-const graph = new joint.dia.Graph({}, { cellNamespace: namespace })
-
-const paper = new joint.dia.Paper({
-  el: window.document.getElementById('myholder'),
-  model: graph,
-  width: 600,
-  height: 300,
-  gridSize: 10,
-  drawGrid: true,
-  background: {
-    color: 'rgba(0, 255, 0, 0.3)'
-  },
-  cellViewNamespace: namespace
+const diagram = new Diagram({
+  id: 'main',
+  holderDomId: 'myholder',
+  className: 'programflow'
 })
-paper.setGridSize(10)
 
-const rect = new joint.shapes.standard.Rectangle()
-rect.position(100, 30)
-rect.resize(100, 40)
-rect.attr({
-  body: {
-    fill: 'blue'
-  },
-  label: {
-    text: 'Hello',
-    fill: 'white'
-  }
+const single = new shape.SingleShape({
+  id: 'singleShape',
+  cx: x,
+  cy: y += d,
+  width: w,
+  height: h,
+  text: 'Single'
 })
-rect.addTo(graph)
-
-const rect2 = new joint.shapes.standard.Rectangle()
-rect2.position(400, 30)
-rect2.resize(100, 40)
-rect2.attr({
-  body: {
-    fill: '#2C3E50',
-    rx: 5,
-    ry: 5,
-    strokeWidth: 2
-  },
-  label: {
-    text: 'World!',
-    fill: '#3498DB',
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontVariant: 'small-caps'
-  }
+const interaction = new shape.InteractionShape({
+  id: 'interactionShape',
+  cx: x,
+  cy: y += d,
+  width: w,
+  height: h,
+  text: 'Interaction'
 })
-rect2.addTo(graph)
-
-const link = new joint.shapes.standard.Link()
-link.source(rect)
-link.target(rect2)
-link.addTo(graph)
-
-const rect3 = new joint.shapes.standard.Rectangle()
-rect3.position(100, 130)
-rect3.resize(100, 40)
-rect3.attr({
-  body: {
-    fill: '#E74C3C',
-    rx: 20,
-    ry: 20,
-    strokeWidth: 0
-  },
-  label: {
-    text: 'Hello',
-    fill: '#ECF0F1',
-    fontSize: 11,
-    fontVariant: 'small-caps'
-  }
+const split = new shape.SplitShape({
+  id: 'splitShape',
+  cx: x,
+  cy: y += d,
+  width: w,
+  height: h,
+  text: 'Split'
 })
-rect3.addTo(graph)
-
-const rect4 = new joint.shapes.standard.Rectangle()
-rect4.position(400, 130)
-rect4.resize(100, 40)
-rect4.attr({
-  body: {
-    fill: '#8E44AD',
-    strokeWidth: 0
-  },
-  label: {
-    text: 'World!',
-    fill: 'white',
-    fontSize: 13
-  }
+const terminal = new shape.TerminalShape({
+  id: 'terminalShape',
+  cx: x,
+  cy: y += d,
+  width: w,
+  height: h,
+  text: 'Terminal'
 })
-rect4.addTo(graph)
-
-const link2 = new joint.shapes.standard.Link()
-link2.source(rect3)
-link2.target(rect4)
-link2.addTo(graph)
-
-const rect5 = new joint.shapes.standard.Rectangle()
-rect5.position(100, 230)
-rect5.resize(100, 40)
-rect5.attr({
-  body: {
-    fill: '#2ECC71',
-    strokeDasharray: '10,2'
-  },
-  label: {
-    text: 'Hello',
-    fill: 'black',
-    fontSize: 13
-  }
+const loop = new shape.LoopShape({
+  id: 'loopShape',
+  cx: x,
+  cy: y += d,
+  width: w,
+  height: h,
+  text: 'Loop'
 })
-rect5.addTo(graph)
-
-const rect6 = new joint.shapes.standard.Rectangle()
-rect6.position(400, 230)
-rect6.resize(100, 40)
-rect6.attr({
-  body: {
-    fill: '#F39C12',
-    rx: 20,
-    ry: 20,
-    strokeDasharray: '1,1'
-  },
-  label: {
-    text: 'World!',
-    fill: 'gray',
-    fontSize: 18,
-    fontWeight: 'bold',
-    fontVariant: 'small-caps',
-    textShadow: '1px 1px 1px black'
-  }
+const aux = new shape.AuxiliarShape({
+  id: 'auxShape',
+  cx: x,
+  cy: y += d,
+  width: h*2/3,
+  height: h*2/3,
+  text: 'Aux'
 })
-rect6.addTo(graph)
 
-const link3 = new joint.shapes.standard.Link()
-link3.source(rect5)
-link3.target(rect6)
-link3.addTo(graph)
+const line1 = new FlowLine({
+  id: 'line1',
+  route: 'E 50 N 75 W * S *',
+  source: single,
+  target: single
+})
+const line2 = new FlowLine({
+  id: 'line2',
+  route: 'S *',
+  source: single,
+  target: interaction
+})
+const line3 = new FlowLine({
+  id: 'line3',
+  route: 'S *',
+  source: interaction,
+  target: split
+})
+const line4 = new FlowLine({
+  id: 'line4',
+  text: 'true',
+  textDistance: -50,
+  route: 'W 100 S * E *',
+  source: split,
+  target: terminal
+})
+const line5 = new FlowLine({
+  id: 'line5',
+  text: 'false',
+  textDistance: 50,
+  route: 'E 100 S * W *',
+  source: split,
+  target: terminal
+})
+const line6 = new FlowLine({
+  id: 'line6',
+  route: 'S *',
+  source: terminal,
+  target: loop
+})
+const line7 = new FlowLine({
+  id: 'line7',
+  route: 'S *',
+  source: loop,
+  target: aux
+})
+
+diagram.add(single)
+diagram.add(interaction)
+diagram.add(split)
+diagram.add(terminal)
+diagram.add(loop)
+diagram.add(aux)
+diagram.add(line1)
+diagram.add(line2)
+diagram.add(line3)
+diagram.add(line4)
+diagram.add(line5)
+diagram.add(line6)
+diagram.add(line7)

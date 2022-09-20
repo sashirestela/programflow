@@ -2,18 +2,22 @@
 <html>
 
 <head>
-    <title>ProgramFlow</title>
+  <title>ProgramFlow</title>
+  <!--<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Dosis|Abel">-->
+  <link rel="stylesheet" href="./src/css/programflow.css" type="text/css"/>
 </head>
 
 <body>
-    <h1>ProgramFlow</h1>
-    <div id="myholder"></div>
-    <script type="module" src="./src/index.js"></script>
-    
-    <script type="module">
-        import { ProgramFlow } from './src/app.js';
-        window.ProgramFlow = new ProgramFlow();
-    </script>
+  <h1>ProgramFlow</h1>
+  
+  <div id="myholder" style="width:600px; height:700px;"></div>
+  
+  <script type="module" src='./src/index.js'></script>
+  
+  <script type="module">
+    import {ProgramFlow} from './src/app.js'
+    window.ProgramFlow = new ProgramFlow()
+  </script>
 </body>
 
 </html>
