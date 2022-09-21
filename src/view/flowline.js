@@ -10,15 +10,15 @@ export class FlowLine {
 
   #group
 
-  constructor(obj) {
+  constructor (obj) {
     Object.assign(this, obj)
     this.#config()
   }
 
-  #config() {
+  #config () {
     this.source.connect(this)
     this.target.connect(this)
-    
+
     const direction = new Direction({
       route: this.route,
       pointsSource: this.source.getJointPoints(),
@@ -32,9 +32,13 @@ export class FlowLine {
     const points = direction.getPoints()
     const polyline = document.createElementNS(Svg.NS, 'polyline')
     polyline.setAttributeNS(null, 'points', this.#concatenatePoints(points))
-    polyline.setAttributeNS(null, 'marker-end', `url(#${Svg.ARROW})`)
-    this.#group.appendChild(polyline)
-    
+    const polyline1 = polyline.cloneNode(true)
+    polyline1.classList.add('flowlines-shadow')
+    const polyline2 = polyline.cloneNode(true)
+    polyline2.classList.add('flowlines')
+    this.#group.appendChild(polyline1)
+    this.#group.appendChild(polyline2)
+
     if (this.text !== null) {
       const textCoord = this.#calculateTextCoord(points)
       const text = document.createElementNS(Svg.NS, 'text')
@@ -44,11 +48,11 @@ export class FlowLine {
       text.appendChild(document.createTextNode(`[${this.text}]`))
       this.#group.appendChild(text)
     }
-    
+
     this.#group.diagramElement = this
   }
 
-  #concatenatePoints(points) {
+  #concatenatePoints (points) {
     let strPoints = ''
     for (let i = 0; i < points.length; i++) {
       strPoints += `${points[i].x},${points[i].y} `
@@ -56,9 +60,9 @@ export class FlowLine {
     return strPoints
   }
 
-  #calculateTextCoord(points) {
-    let point1 = {x: null, y: null}
-    let point2 = {x: null, y: null}
+  #calculateTextCoord (points) {
+    let point1 = { x: null, y: null }
+    let point2 = { x: null, y: null }
     let distance
     if (this.textDistance >= 0) {
       point1 = points[0]
@@ -69,7 +73,7 @@ export class FlowLine {
       point2 = points[points.length - 2]
       distance = -1 * this.textDistance
     }
-    let textCoord = point1
+    const textCoord = point1
     if (point1.x === point2.x) {
       textCoord.y += distance * (point1.y < point2.y ? 1 : -1)
     } else if (point1.y === point2.y) {
@@ -79,13 +83,12 @@ export class FlowLine {
     return textCoord
   }
 
-  startDrag(evt) {
+  startDrag (evt) {
     // Keep it to allow generic calling from Diagram
   }
 
-  drag(evt) {
+  drag (evt) {
     const svg = this.#group.ownerSVGElement
-    const polyline = this.#group.childNodes[0]
     const pointsSource = this.source.getJointPoints()
     const pointsTarget = this.target.getJointPoints()
     const coord = Svg.getMousePosition(svg, evt)
@@ -106,7 +109,7 @@ export class FlowLine {
     } else {
       refTarget = pointsTarget.top
     }
-    
+
     let strPoints = `${refSource.x},${refSource.y} `
     if (coord.x !== refSource.x) {
       strPoints += `${coord.x},${refSource.y} `
@@ -115,10 +118,14 @@ export class FlowLine {
       strPoints += `${coord.x},${refTarget.y} `
     }
     strPoints += `${refTarget.x},${refTarget.y}`
-    polyline.setAttributeNS(null, 'points', strPoints)
+
+    const polyline1 = this.#group.childNodes[0]
+    polyline1.setAttributeNS(null, 'points', strPoints)
+    const polyline2 = this.#group.childNodes[1]
+    polyline2.setAttributeNS(null, 'points', strPoints)
   }
 
-  getGroup() {
+  getGroup () {
     return this.#group
   }
 }
@@ -127,12 +134,12 @@ class Direction {
   route
   pointsSource
   pointsTarget
-  
-  constructor(obj) {
+
+  constructor (obj) {
     Object.assign(this, obj)
   }
 
-  #calculateStartPoint(address) {
+  #calculateStartPoint (address) {
     switch (address) {
       case 'W':
         return this.pointsSource.left
@@ -145,7 +152,7 @@ class Direction {
     }
   }
 
-  #calculateEndPoint(address) {
+  #calculateEndPoint (address) {
     switch (address) {
       case 'W':
         return this.pointsTarget.right
@@ -158,16 +165,16 @@ class Direction {
     }
   }
 
-  getPoints() {
+  getPoints () {
     const routeArray = this.route.split(' ')
     const startPoint = this.#calculateStartPoint(routeArray[0])
     const endPoint = this.#calculateEndPoint(routeArray[routeArray.length - 2])
-    let points = [startPoint]
-    for (let i = 0; i < routeArray.length; i+=2) {
+    const points = [startPoint]
+    for (let i = 0; i < routeArray.length; i += 2) {
       const address = routeArray[i]
       const value = routeArray[i + 1]
       const prevPoint = points[points.length - 1]
-      let newPoint = {x: null, y: null}
+      const newPoint = { x: null, y: null }
       if ('WE'.includes(address)) {
         newPoint.y = prevPoint.y
         if (value === '*') {

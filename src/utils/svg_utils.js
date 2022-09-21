@@ -1,5 +1,5 @@
 export class Svg {
-  static getMousePosition(svg, evt) {
+  static getMousePosition (svg, evt) {
     const CTM = svg.getScreenCTM()
     if (evt.touches) {
       evt = evt.touches[0]
@@ -10,10 +10,10 @@ export class Svg {
     }
   }
 
-  static getTranformTranslate(selected) {
+  static getTranformTranslate (selected) {
     const svg = selected.ownerSVGElement
     const transforms = selected.transform.baseVal
-    if (transforms.length === 0 || transforms[0].type !== SVGTransform.SVG_TRANSFORM_TRANSLATE) {
+    if (transforms.length === 0 || transforms[0].type !== window.SVGTransform.SVG_TRANSFORM_TRANSLATE) {
       const translate = svg.createSVGTransform()
       translate.setTranslate(0, 0)
       selected.transform.baseVal.insertItemBefore(translate, 0)
@@ -21,19 +21,15 @@ export class Svg {
     return transforms[0]
   }
 
-  static clonedEvent(evt, x, y) {
+  static clonedEvent (evt, x, y) {
     return {
       touches: evt.touches,
       clientX: x,
       clientY: y
     }
   }
-  
-  static get NS() {
+
+  static get NS () {
     return 'http://www.w3.org/2000/svg'
-  }
-  
-  static get ARROW() {
-    return 'arrow'
   }
 }

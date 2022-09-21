@@ -2,10 +2,10 @@ import { Diagram } from './view/diagram.js'
 import * as shape from './view/shapes.js'
 import { FlowLine } from './view/flowline.js'
 
-const w = 100
+const w = 120
 const h = 40
 const d = 80
-let x = 300
+const x = 300
 let y = 50
 
 const diagram = new Diagram({
@@ -58,8 +58,8 @@ const aux = new shape.AuxiliarShape({
   id: 'auxShape',
   cx: x,
   cy: y += d,
-  width: h*2/3,
-  height: h*2/3,
+  width: h * 2 / 3,
+  height: h * 2 / 3,
   text: 'Aux'
 })
 
