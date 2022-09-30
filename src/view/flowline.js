@@ -1,4 +1,4 @@
-import { Svg } from './../utils/svg_utils.js'
+import { Svg, MovementType, TerminalType, SegmentType, Polyline, Direction } from './../utils/graphics.js'
 
 export class FlowLine {
   id = null
@@ -9,6 +9,12 @@ export class FlowLine {
   target = null
 
   #group
+  #staticCoord
+  #selectedSegmentType
+  #selectedSegment
+
+  #joint
+  #terminalType
 
   constructor (obj) {
     Object.assign(this, obj)
@@ -16,22 +22,21 @@ export class FlowLine {
   }
 
   #config () {
-    this.source.connect(this)
-    this.target.connect(this)
+    this.source.connect(this, TerminalType.Source)
+    this.target.connect(this, TerminalType.Target)
 
     const direction = new Direction({
-      route: this.route,
-      pointsSource: this.source.getJointPoints(),
-      pointsTarget: this.target.getJointPoints()
+      jointSource: this.source.jointCoords(),
+      jointTarget: this.target.jointCoords()
     })
 
     this.#group = document.createElementNS(Svg.NS, 'g')
     this.#group.setAttributeNS(null, 'id', this.id)
     this.#group.classList.add('draggable')
 
-    const points = direction.getPoints()
+    const coords = direction.getCoords(this.route)
     const polyline = document.createElementNS(Svg.NS, 'polyline')
-    polyline.setAttributeNS(null, 'points', this.#concatenatePoints(points))
+    polyline.setAttributeNS(null, 'points', Polyline.coordsToPoints(coords))
     const polyline1 = polyline.cloneNode(true)
     polyline1.classList.add('flowlines-shadow')
     const polyline2 = polyline.cloneNode(true)
@@ -40,77 +45,121 @@ export class FlowLine {
     this.#group.appendChild(polyline2)
 
     if (this.text !== null) {
-      const textCoord = this.#calculateTextCoord(points)
+      const textCoord = this.#calculateTextCoord(coords)
       const text = document.createElementNS(Svg.NS, 'text')
       text.setAttributeNS(null, 'text-anchor', 'middle')
       text.setAttributeNS(null, 'x', textCoord.x)
       text.setAttributeNS(null, 'y', textCoord.y)
-      text.appendChild(document.createTextNode(`[${this.text}]`))
+      text.appendChild(document.createTextNode(this.text))
       this.#group.appendChild(text)
     }
 
     this.#group.diagramElement = this
   }
 
-  #concatenatePoints (points) {
-    let strPoints = ''
-    for (let i = 0; i < points.length; i++) {
-      strPoints += `${points[i].x},${points[i].y} `
-    }
-    return strPoints
-  }
-
-  #calculateTextCoord (points) {
-    let point1 = { x: null, y: null }
-    let point2 = { x: null, y: null }
+  #calculateTextCoord (coords) {
+    let coord1 = { x: null, y: null }
+    let coord2 = { x: null, y: null }
     let distance
     if (this.textDistance >= 0) {
-      point1 = points[0]
-      point2 = points[1]
+      coord1 = coords[0]
+      coord2 = coords[1]
       distance = this.textDistance
     } else {
-      point1 = points[points.length - 1]
-      point2 = points[points.length - 2]
+      coord1 = coords[coords.length - 1]
+      coord2 = coords[coords.length - 2]
       distance = -1 * this.textDistance
     }
-    const textCoord = point1
-    if (point1.x === point2.x) {
-      textCoord.y += distance * (point1.y < point2.y ? 1 : -1)
-    } else if (point1.y === point2.y) {
-      textCoord.x += distance * (point1.x < point2.x ? 1 : -1)
+    const textCoord = coord1
+    if (coord1.x === coord2.x) {
+      textCoord.y += distance * (coord1.y < coord2.y ? 1 : -1)
+    } else if (coord1.y === coord2.y) {
+      textCoord.x += distance * (coord1.x < coord2.x ? 1 : -1)
       textCoord.y -= 5
     }
     return textCoord
   }
 
   startDrag (evt) {
-    // Keep it to allow generic calling from Diagram
+    const svg = this.#group.ownerSVGElement
+    const jointSource = this.source.jointCoords()
+    const jointTarget = this.target.jointCoords()
+    const coord = Svg.getMousePosition(svg, evt)
+    const points = this.#group.childNodes[0].getAttributeNS(null, 'points')
+    const segment = Polyline.pickedSegmentOnPoints(points, coord, Svg.MARGIN)
+    let isDraggable = (segment.length > 0)
+    isDraggable = isDraggable &&
+      !Polyline.isVerticalAndOutsideOfJoints(segment, jointSource, jointTarget)
+    isDraggable = isDraggable &&
+      !(Polyline.isSegmentAlongBorder(segment, this.source.borderLines()) ||
+        Polyline.isSegmentAlongBorder(segment, this.target.borderLines()))
+    if (isDraggable) {
+      this.#selectedSegmentType = Polyline.segmentTypeOnPoints(segment, points)
+    } else {
+      this.#selectedSegmentType = SegmentType.Undraggable
+    }
+    this.#staticCoord = { x: null, y: null }
+    if (this.#selectedSegmentType === SegmentType.VerticalInner ||
+      this.#selectedSegmentType === SegmentType.VerticalOuter) {
+      this.#staticCoord.y = coord.y
+    } else if (this.#selectedSegmentType === SegmentType.HorizontalTop ||
+      this.#selectedSegmentType === SegmentType.HorizontalBottom) {
+      this.#staticCoord.x = coord.x
+    }
+    this.#selectedSegment = segment
   }
 
   drag (evt) {
     const svg = this.#group.ownerSVGElement
-    const pointsSource = this.source.getJointPoints()
-    const pointsTarget = this.target.getJointPoints()
+    const jointSource = this.source.jointCoords()
+    const jointTarget = this.target.jointCoords()
     const coord = Svg.getMousePosition(svg, evt)
+    let points
+    if (this.#selectedSegmentType === SegmentType.VerticalInner) {
+      points = this.#dragVerticalInner(coord, jointSource, jointTarget)
+    } else if (this.#selectedSegmentType === SegmentType.VerticalOuter) {
+      points = this.#dragVerticalOutter(coord, jointSource, jointTarget)
+    } else if (this.#selectedSegmentType === SegmentType.HorizontalTop ||
+      this.#selectedSegmentType === SegmentType.HorizontalBottom) {
+      points = this.#dragHorizontal(coord, jointSource, jointTarget)
+    }
+    if (this.#selectedSegmentType !== SegmentType.Undraggable) {
+      const polyline1 = this.#group.childNodes[0]
+      polyline1.setAttributeNS(null, 'points', points)
+      const polyline2 = this.#group.childNodes[1]
+      polyline2.setAttributeNS(null, 'points', points)
+      const text = this.#group.childNodes[2]
+      if (text !== undefined) {
+        const textCoord = this.#calculateTextCoord(Polyline.pointsToCoords(points))
+        text.setAttributeNS(null, 'x', textCoord.x)
+        text.setAttributeNS(null, 'y', textCoord.y)
+      }
+    }
+  }
 
+  #dragVerticalInner (coord, jointSource, jointTarget) {
+    let strPoints
     let refSource = null
-    if (coord.x <= pointsSource.left.x) {
-      refSource = pointsSource.left
-    } else if (coord.x >= pointsSource.right.x) {
-      refSource = pointsSource.right
+    if (coord.x <= jointSource.left.x) {
+      refSource = jointSource.left
+    } else if (coord.x >= jointSource.right.x) {
+      refSource = jointSource.right
+    } else if (jointSource.top.y < jointTarget.top.y) {
+      refSource = jointSource.bottom
     } else {
-      refSource = pointsSource.bottom
+      refSource = jointSource.top
     }
     let refTarget = null
-    if (coord.x <= pointsTarget.left.x) {
-      refTarget = pointsTarget.left
-    } else if (coord.x >= pointsTarget.right.x) {
-      refTarget = pointsTarget.right
+    if (coord.x <= jointTarget.left.x) {
+      refTarget = jointTarget.left
+    } else if (coord.x >= jointTarget.right.x) {
+      refTarget = jointTarget.right
+    } else if (jointTarget.top.y > jointSource.top.y) {
+      refTarget = jointTarget.top
     } else {
-      refTarget = pointsTarget.top
+      refTarget = jointTarget.bottom
     }
-
-    let strPoints = `${refSource.x},${refSource.y} `
+    strPoints = `${refSource.x},${refSource.y} `
     if (coord.x !== refSource.x) {
       strPoints += `${coord.x},${refSource.y} `
     }
@@ -118,11 +167,232 @@ export class FlowLine {
       strPoints += `${coord.x},${refTarget.y} `
     }
     strPoints += `${refTarget.x},${refTarget.y}`
+    return strPoints
+  }
 
+  #dragVerticalOutter (coord, jointSource, jointTarget) {
+    let strPoints
+    let lowerSource = false
+    let refSource = null
+    if (jointSource.top.y <= jointTarget.top.y) {
+      if (this.#selectedSegment[0].y <= jointSource.top.y) {
+        refSource = jointSource.top
+      } else {
+        lowerSource = true
+      }
+    } else {
+      if (this.#selectedSegment[0].y >= jointSource.bottom.y) {
+        refSource = jointSource.bottom
+      } else {
+        lowerSource = true
+      }
+    }
+    if (lowerSource) {
+      if (coord.x <= jointSource.left.x) {
+        refSource = jointSource.left
+      } else if (coord.x >= jointSource.right.x) {
+        refSource = jointSource.right
+      } else if (jointSource.top.y <= jointTarget.top.y) {
+        refSource = jointSource.bottom
+      } else {
+        refSource = jointSource.top
+      }
+    }
+    let lowerTarget = false
+    let refTarget = null
+    if (jointTarget.bottom.y >= jointSource.bottom.y) {
+      if (this.#selectedSegment[1].y >= jointTarget.bottom.y) {
+        refTarget = jointTarget.bottom
+      } else {
+        lowerTarget = true
+      }
+    } else {
+      if (this.#selectedSegment[1].y <= jointTarget.top.y) {
+        refTarget = jointTarget.top
+      } else {
+        lowerTarget = true
+      }
+    }
+    if (lowerTarget) {
+      if (coord.x <= jointTarget.left.x) {
+        refTarget = jointTarget.left
+      } else if (coord.x >= jointTarget.right.x) {
+        refTarget = jointTarget.right
+      } else if (jointTarget.top.y > jointSource.top.y) {
+        refTarget = jointTarget.top
+      } else {
+        refTarget = jointTarget.bottom
+      }
+    }
+    strPoints = `${refSource.x},${refSource.y} `
+    if (lowerSource) {
+      if (coord.x !== refSource.x) {
+        strPoints += `${coord.x},${refSource.y} `
+      }
+    } else {
+      strPoints += `${refSource.x},${this.#selectedSegment[0].y} `
+      strPoints += `${coord.x},${this.#selectedSegment[0].y} `
+    }
+    if (lowerTarget) {
+      if (coord.x !== refTarget.x) {
+        strPoints += `${coord.x},${refTarget.y} `
+      }
+    } else {
+      strPoints += `${coord.x},${this.#selectedSegment[1].y} `
+      strPoints += `${refTarget.x},${this.#selectedSegment[1].y} `
+    }
+    strPoints += `${refTarget.x},${refTarget.y}`
+    return strPoints
+  }
+
+  #dragHorizontal (coord, jointSource, jointTarget) {
+    let strPoints
+    const coords = this.getCoords()
+    const joints = new JointsPair({
+      segmentType: this.#selectedSegmentType,
+      firstJoint: jointSource,
+      secondJoint: jointTarget
+    })
+    let ref
+    if (joints.exceedsNearOutermostY(coord.y)) {
+      ref = joints.nearOutermost()
+    } else {
+      if (this.#staticCoord.x < joints.nearJoint.left.x) {
+        ref = joints.nearJoint.left
+        if (joints.exceedsNearLeftY(coord.y)) {
+          coord.y = ref.y
+        }
+      } else if (this.#staticCoord.x > joints.nearJoint.right.x) {
+        ref = joints.nearJoint.right
+        if (joints.exceedsNearRightY(coord.y)) {
+          coord.y = ref.y
+        }
+      }
+    }
+    if ((jointSource.top.y === jointTarget.top.y && this.#selectedSegmentType === SegmentType.HorizontalTop) ||
+        (jointSource.top.y !== jointTarget.top.y && jointSource.top.y === joints.nearJoint.top.y)) {
+      const newCoords = [ref]
+      if (coord.y !== ref.y) {
+        newCoords.push({ x: ref.x, y: coord.y })
+      }
+      let isFirst = true
+      for (let i = 0; i < coords.length; i++) {
+        if (joints.exceedsFarLeftY(coords[i].y)) {
+          if (isFirst) {
+            isFirst = false
+            newCoords.push({ x: coords[i].x, y: coord.y })
+          }
+          newCoords.push(coords[i])
+        }
+      }
+      strPoints = Polyline.coordsToPoints(newCoords)
+    } else if ((jointSource.top.y === jointTarget.top.y && this.#selectedSegmentType === SegmentType.HorizontalBottom) ||
+               (jointSource.top.y !== jointTarget.top.y && jointSource.top.y !== joints.nearJoint.top.y)) {
+      const newCoords = []
+      for (let i = 0; i < coords.length; i++) {
+        if (joints.exceedsFarLeftY(coords[i].y)) {
+          newCoords.push(coords[i])
+        } else {
+          newCoords.push({ x: coords[i].x, y: coord.y })
+          break
+        }
+      }
+      if (coord.y !== ref.y) {
+        newCoords.push({ x: ref.x, y: coord.y })
+      }
+      newCoords.push(ref)
+      strPoints = Polyline.coordsToPoints(newCoords)
+    }
+    return strPoints
+  }
+
+  startShapeDrag (terminalType) {
+    this.#terminalType = terminalType
+    const jointCoords = (this.#terminalType === TerminalType.Source
+      ? this.source.jointCoords()
+      : this.target.jointCoords())
+    const coords = this.getCoords()
+    const jointCoord = (this.#terminalType === TerminalType.Source
+      ? coords[0]
+      : coords[coords.length - 1])
+    for (const joint in jointCoords) {
+      if (jointCoords[joint].x === jointCoord.x && jointCoords[joint].y === jointCoord.y) {
+        this.#joint = joint
+        break
+      }
+    }
+  }
+
+  shapeDrag (movementType) {
+    const jointCoords = (this.#terminalType === TerminalType.Source
+      ? this.source.jointCoords()
+      : this.target.jointCoords())
+    let coords = this.getCoords()
+    let ini, end
+    if (movementType === MovementType.Vertical) {
+      if (this.#terminalType === TerminalType.Target) {
+        ini = coords.length - 2
+        end = coords.length - 1
+        if (coords[end].y === coords[ini].y) {
+          coords[ini].y = jointCoords[this.#joint].y
+        }
+        coords[end].y = jointCoords[this.#joint].y
+      } else {
+        ini = 0
+        end = 1
+        if (coords[end].y === coords[ini].y) {
+          coords[end].y = jointCoords[this.#joint].y
+        }
+        coords[ini].y = jointCoords[this.#joint].y
+      }
+    } else {
+      if (this.#terminalType === TerminalType.Target) {
+        ini = coords.length - 2
+        end = coords.length - 1
+        if (coords[end].y === coords[ini].y) {
+          coords[end].x = jointCoords[this.#joint].x
+        } else {
+          if (coords.length === 2) {
+            coords.splice(end, 0, coords[ini])
+          } else {
+            coords[ini].x = jointCoords[this.#joint].x
+            coords[end].x = jointCoords[this.#joint].x
+            coords = coords.filter((c, i) => coords.findIndex(cc => cc.x === c.x && cc.y === c.y) === i)
+          }
+        }
+      } else {
+        ini = 0
+        end = 1
+        if (coords[end].y === coords[ini].y) {
+          coords[ini].x = jointCoords[this.#joint].x
+        } else {
+          if (coords.length === 2) {
+            coords.splice(end, 0, coords[end])
+          } else {
+            coords[ini].x = jointCoords[this.#joint].x
+            coords[end].x = jointCoords[this.#joint].x
+            coords = coords.filter((c, i) => coords.findIndex(cc => cc.x === c.x && cc.y === c.y) === i)
+          }
+        }
+      }
+    }
+    const points = Polyline.coordsToPoints(coords)
     const polyline1 = this.#group.childNodes[0]
-    polyline1.setAttributeNS(null, 'points', strPoints)
+    polyline1.setAttributeNS(null, 'points', points)
     const polyline2 = this.#group.childNodes[1]
-    polyline2.setAttributeNS(null, 'points', strPoints)
+    polyline2.setAttributeNS(null, 'points', points)
+    const text = this.#group.childNodes[2]
+    if (text !== undefined) {
+      const textCoord = this.#calculateTextCoord(coords)
+      text.setAttributeNS(null, 'x', textCoord.x)
+      text.setAttributeNS(null, 'y', textCoord.y)
+    }
+  }
+
+  getCoords () {
+    const points = this.#group.childNodes[0].getAttributeNS(null, 'points')
+    const coords = Polyline.pointsToCoords(points)
+    return coords
   }
 
   getGroup () {
@@ -130,68 +400,72 @@ export class FlowLine {
   }
 }
 
-class Direction {
-  route
-  pointsSource
-  pointsTarget
+class JointsPair {
+  segmentType
+  firstJoint
+  secondJoint
+
+  nearJoint
+  farJoint
 
   constructor (obj) {
     Object.assign(this, obj)
-  }
-
-  #calculateStartPoint (address) {
-    switch (address) {
-      case 'W':
-        return this.pointsSource.left
-      case 'S':
-        return this.pointsSource.bottom
-      case 'E':
-        return this.pointsSource.right
-      case 'N':
-        return this.pointsSource.top
-    }
-  }
-
-  #calculateEndPoint (address) {
-    switch (address) {
-      case 'W':
-        return this.pointsTarget.right
-      case 'S':
-        return this.pointsTarget.top
-      case 'E':
-        return this.pointsTarget.left
-      case 'N':
-        return this.pointsTarget.bottom
-    }
-  }
-
-  getPoints () {
-    const routeArray = this.route.split(' ')
-    const startPoint = this.#calculateStartPoint(routeArray[0])
-    const endPoint = this.#calculateEndPoint(routeArray[routeArray.length - 2])
-    const points = [startPoint]
-    for (let i = 0; i < routeArray.length; i += 2) {
-      const address = routeArray[i]
-      const value = routeArray[i + 1]
-      const prevPoint = points[points.length - 1]
-      const newPoint = { x: null, y: null }
-      if ('WE'.includes(address)) {
-        newPoint.y = prevPoint.y
-        if (value === '*') {
-          newPoint.x = endPoint.x
-        } else {
-          newPoint.x = prevPoint.x + parseInt(value) * (address === 'E' ? 1 : -1)
-        }
-      } else if ('SN'.includes(address)) {
-        newPoint.x = prevPoint.x
-        if (value === '*') {
-          newPoint.y = endPoint.y
-        } else {
-          newPoint.y = prevPoint.y + parseInt(value) * (address === 'S' ? 1 : -1)
-        }
+    let firstIsNear = false
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      if (this.firstJoint.top.y <= this.secondJoint.top.y) {
+        firstIsNear = true
       }
-      points.push(newPoint)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      if (this.firstJoint.bottom.y > this.secondJoint.bottom.y) {
+        firstIsNear = true
+      }
     }
-    return points
+    if (firstIsNear) {
+      this.nearJoint = this.firstJoint
+      this.farJoint = this.secondJoint
+    } else {
+      this.nearJoint = this.secondJoint
+      this.farJoint = this.firstJoint
+    }
+  }
+
+  nearOutermost () {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return this.nearJoint.top
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return this.nearJoint.bottom
+    }
+  }
+
+  exceedsNearOutermostY (y) {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return (y <= this.nearJoint.top.y)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return (y >= this.nearJoint.bottom.y)
+    }
+  }
+
+  exceedsNearLeftY (y) {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return (y >= this.nearJoint.left.y)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return (y <= this.nearJoint.left.y)
+    }
+  }
+
+  exceedsNearRightY (y) {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return (y >= this.nearJoint.right.y)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return (y <= this.nearJoint.right.y)
+    }
+  }
+
+  exceedsFarLeftY (y) {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return (y >= this.farJoint.left.y)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return (y <= this.farJoint.left.y)
+    }
   }
 }

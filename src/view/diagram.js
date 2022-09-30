@@ -1,4 +1,4 @@
-import { Svg } from './../utils/svg_utils.js'
+import { Svg } from './../utils/graphics.js'
 
 export class Diagram {
   id = null

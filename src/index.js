@@ -65,15 +65,17 @@ const aux = new shape.AuxiliarShape({
 
 const line1 = new FlowLine({
   id: 'line1',
-  route: 'E 50 N 75 W * S *',
+  route: 'N 30 E 100 S * W *',
   source: single,
   target: single
 })
 const line2 = new FlowLine({
   id: 'line2',
-  route: 'S *',
-  source: single,
-  target: interaction
+  text: 'next',
+  textDistance: 20,
+  route: 'N *',
+  source: interaction,
+  target: single
 })
 const line3 = new FlowLine({
   id: 'line3',
@@ -105,9 +107,9 @@ const line6 = new FlowLine({
 })
 const line7 = new FlowLine({
   id: 'line7',
-  route: 'S *',
-  source: loop,
-  target: aux
+  route: 'N *',
+  source: aux,
+  target: loop
 })
 
 diagram.add(single)

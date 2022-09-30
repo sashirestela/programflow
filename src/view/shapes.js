@@ -1,4 +1,4 @@
-import { Svg } from './../utils/svg_utils.js'
+import { Svg, MovementType } from './../utils/graphics.js'
 
 class Shape {
   id = null
@@ -12,6 +12,7 @@ class Shape {
   #initial
   #offset
   #transform
+  #movementType
 
   #flowlines = []
 
@@ -41,22 +42,37 @@ class Shape {
     this.#group.diagramElement = this
   }
 
-  getJointPoints () {
-    let cx, cy
+  centerCoord () {
     const transforms = this.#group.transform.baseVal
-    if (transforms.length === 0) {
-      cx = this.cx
-      cy = this.cy
-    } else {
-      cx = this.cx + transforms[0].matrix.e
-      cy = this.cy + transforms[0].matrix.f
+    return {
+      x: this.cx + (transforms.length === 0 ? 0 : transforms[0].matrix.e),
+      y: this.cy + (transforms.length === 0 ? 0 : transforms[0].matrix.f)
     }
+  }
+
+  jointCoords () {
+    const { x: cx, y: cy } = this.centerCoord()
     return {
       top: { x: cx, y: cy - this.height / 2 },
       bottom: { x: cx, y: cy + this.height / 2 },
       left: { x: cx - this.width / 2, y: cy },
       right: { x: cx + this.width / 2, y: cy }
     }
+  }
+
+  borderLines () {
+    const { x: cx, y: cy } = this.centerCoord()
+    const
+      topLeft = { x: cx - this.width / 2, y: cy - this.height / 2 }
+    const topRight = { x: cx + this.width / 2, y: cy - this.height / 2 }
+    const bottomLeft = { x: cx - this.width / 2, y: cy + this.height / 2 }
+    const bottomRight = { x: cx + this.width / 2, y: cy + this.height / 2 }
+    return [
+      [topLeft, topRight],
+      [bottomLeft, bottomRight],
+      [topLeft, bottomLeft],
+      [topRight, bottomRight]
+    ]
   }
 
   startDrag (evt) {
@@ -66,30 +82,40 @@ class Shape {
     this.#transform = Svg.getTranformTranslate(this.#group)
     this.#offset.x -= this.#transform.matrix.e
     this.#offset.y -= this.#transform.matrix.f
+    this.#movementType = null
+
+    this.#flowlines.forEach(obj => obj.flowline.startShapeDrag(obj.terminalType))
   }
 
   drag (evt) {
     const svg = this.#group.ownerSVGElement
     const coord = Svg.getMousePosition(svg, evt)
-    if (Math.abs((coord.y - this.#initial.y)) >= Math.abs((coord.x - this.#initial.x))) {
+    if (this.#movementType === null) {
+      if (Math.abs((coord.y - this.#initial.y)) >= Math.abs((coord.x - this.#initial.x))) {
+        this.#movementType = MovementType.Vertical
+      } else {
+        this.#movementType = MovementType.Horizontal
+      }
+    }
+    if (this.#movementType === MovementType.Vertical) {
       coord.x = this.#initial.x
-    } else {
+    } else if (this.#movementType === MovementType.Horizontal) {
       coord.y = this.#initial.y
     }
     this.#transform.setTranslate(coord.x - this.#offset.x, coord.y - this.#offset.y)
 
-    const flowlineX = this.cx + this.#transform.matrix.e + 1
-    const flowlineY = evt.clientY
-    const flowlineEvt = Svg.clonedEvent(evt, flowlineX, flowlineY)
-    this.#flowlines.forEach(flowline => flowline.drag(flowlineEvt))
+    this.#flowlines.forEach(obj => obj.flowline.shapeDrag(this.#movementType))
   }
 
   getGroup () {
     return this.#group
   }
 
-  connect (flowline) {
-    this.#flowlines.push(flowline)
+  connect (flowline, terminalType) {
+    this.#flowlines.push({
+      flowline,
+      terminalType
+    })
   }
 }
 
