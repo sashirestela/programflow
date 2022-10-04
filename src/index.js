@@ -4,7 +4,7 @@ import { FlowLine } from './view/flowline.js'
 
 const w = 120
 const h = 40
-const d = 80
+const d = 100
 const x = 300
 let y = 50
 
@@ -65,7 +65,7 @@ const aux = new shape.AuxiliarShape({
 
 const line1 = new FlowLine({
   id: 'line1',
-  route: 'N 30 E 100 S * W *',
+  route: 'S 20 W 100 N * E *',
   source: single,
   target: single
 })
@@ -107,9 +107,9 @@ const line6 = new FlowLine({
 })
 const line7 = new FlowLine({
   id: 'line7',
-  route: 'N *',
-  source: aux,
-  target: loop
+  route: 'S *',
+  source: loop,
+  target: aux
 })
 
 diagram.add(single)

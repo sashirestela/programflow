@@ -13,8 +13,7 @@ export class FlowLine {
   #selectedSegmentType
   #selectedSegment
 
-  #joint
-  #terminalType
+  #terminalTypeJointMap = new Map()
 
   constructor (obj) {
     Object.assign(this, obj)
@@ -172,9 +171,11 @@ export class FlowLine {
 
   #dragVerticalOutter (coord, jointSource, jointTarget) {
     let strPoints
+    const coords = this.#getCoords()
     let lowerSource = false
     let refSource = null
-    if (jointSource.top.y <= jointTarget.top.y) {
+    if (jointSource.top.y < jointTarget.top.y ||
+        (jointSource.top.y === jointTarget.top.y && coords[0].y < coords[coords.length - 1].y)) {
       if (this.#selectedSegment[0].y <= jointSource.top.y) {
         refSource = jointSource.top
       } else {
@@ -200,7 +201,8 @@ export class FlowLine {
     }
     let lowerTarget = false
     let refTarget = null
-    if (jointTarget.bottom.y >= jointSource.bottom.y) {
+    if (jointTarget.bottom.y > jointSource.bottom.y ||
+        (jointSource.top.y === jointTarget.top.y && coords[coords.length - 1].y > coords[0].y)) {
       if (this.#selectedSegment[1].y >= jointTarget.bottom.y) {
         refTarget = jointTarget.bottom
       } else {
@@ -247,12 +249,16 @@ export class FlowLine {
 
   #dragHorizontal (coord, jointSource, jointTarget) {
     let strPoints
-    const coords = this.getCoords()
+    const coords = this.#getCoords()
     const joints = new JointsPair({
       segmentType: this.#selectedSegmentType,
       firstJoint: jointSource,
       secondJoint: jointTarget
     })
+    if (joints.areEquals() && joints.exceedsLimitForSelfJoin(coord.y, coords)) {
+      strPoints = Polyline.coordsToPoints(coords)
+      return strPoints
+    }
     let ref
     if (joints.exceedsNearOutermostY(coord.y)) {
       ref = joints.nearOutermost()
@@ -269,15 +275,16 @@ export class FlowLine {
         }
       }
     }
-    if ((jointSource.top.y === jointTarget.top.y && this.#selectedSegmentType === SegmentType.HorizontalTop) ||
-        (jointSource.top.y !== jointTarget.top.y && jointSource.top.y === joints.nearJoint.top.y)) {
+    if ((!joints.areEquals() && jointSource.top.y === joints.nearJoint.top.y) ||
+        (joints.areEquals() && joints.isSourceSide(coords[0].y, coords[coords.length - 1].y))) {
       const newCoords = [ref]
       if (coord.y !== ref.y) {
         newCoords.push({ x: ref.x, y: coord.y })
       }
       let isFirst = true
       for (let i = 0; i < coords.length; i++) {
-        if (joints.exceedsFarLeftY(coords[i].y)) {
+        if ((!joints.areEquals() && joints.exceedsFarOutermostY(coords[i].y)) ||
+            (joints.areEquals() && joints.exceedsLimitY(coords[i].y, coords[0].y))) {
           if (isFirst) {
             isFirst = false
             newCoords.push({ x: coords[i].x, y: coord.y })
@@ -286,11 +293,11 @@ export class FlowLine {
         }
       }
       strPoints = Polyline.coordsToPoints(newCoords)
-    } else if ((jointSource.top.y === jointTarget.top.y && this.#selectedSegmentType === SegmentType.HorizontalBottom) ||
-               (jointSource.top.y !== jointTarget.top.y && jointSource.top.y !== joints.nearJoint.top.y)) {
+    } else {
       const newCoords = []
       for (let i = 0; i < coords.length; i++) {
-        if (joints.exceedsFarLeftY(coords[i].y)) {
+        if ((!joints.areEquals() && joints.exceedsFarOutermostY(coords[i].y)) ||
+            (joints.areEquals() && joints.exceedsLimitY(coords[i].y, coords[coords.length - 1].y))) {
           newCoords.push(coords[i])
         } else {
           newCoords.push({ x: coords[i].x, y: coord.y })
@@ -307,71 +314,71 @@ export class FlowLine {
   }
 
   startShapeDrag (terminalType) {
-    this.#terminalType = terminalType
-    const jointCoords = (this.#terminalType === TerminalType.Source
+    const jointCoords = (terminalType === TerminalType.Source
       ? this.source.jointCoords()
       : this.target.jointCoords())
-    const coords = this.getCoords()
-    const jointCoord = (this.#terminalType === TerminalType.Source
+    const coords = this.#getCoords()
+    const jointCoord = (terminalType === TerminalType.Source
       ? coords[0]
       : coords[coords.length - 1])
     for (const joint in jointCoords) {
       if (jointCoords[joint].x === jointCoord.x && jointCoords[joint].y === jointCoord.y) {
-        this.#joint = joint
+        this.#terminalTypeJointMap.set(terminalType, joint)
         break
       }
     }
   }
 
-  shapeDrag (movementType) {
-    const jointCoords = (this.#terminalType === TerminalType.Source
+  shapeDrag (terminalType, movementType) {
+    const joint = this.#terminalTypeJointMap.get(terminalType)
+    const jointCoords = (terminalType === TerminalType.Source
       ? this.source.jointCoords()
       : this.target.jointCoords())
-    let coords = this.getCoords()
+    let coords = this.#getCoords()
     let ini, end
     if (movementType === MovementType.Vertical) {
-      if (this.#terminalType === TerminalType.Target) {
+      if (terminalType === TerminalType.Target) {
         ini = coords.length - 2
         end = coords.length - 1
-        if (coords[end].y === coords[ini].y) {
-          coords[ini].y = jointCoords[this.#joint].y
+        if (coords[end].y === coords[ini].y && coords[end].x !== coords[ini].x) {
+          coords[ini].y = jointCoords[joint].y
         }
-        coords[end].y = jointCoords[this.#joint].y
+        coords[end].y = jointCoords[joint].y
       } else {
         ini = 0
         end = 1
-        if (coords[end].y === coords[ini].y) {
-          coords[end].y = jointCoords[this.#joint].y
+        if (coords[end].y === coords[ini].y && coords[end].x !== coords[ini].x) {
+          coords[end].y = jointCoords[joint].y
         }
-        coords[ini].y = jointCoords[this.#joint].y
+        coords[ini].y = jointCoords[joint].y
       }
     } else {
-      if (this.#terminalType === TerminalType.Target) {
+      if (terminalType === TerminalType.Target) {
         ini = coords.length - 2
         end = coords.length - 1
         if (coords[end].y === coords[ini].y) {
-          coords[end].x = jointCoords[this.#joint].x
+          coords[end].x = jointCoords[joint].x
         } else {
           if (coords.length === 2) {
             coords.splice(end, 0, coords[ini])
           } else {
-            coords[ini].x = jointCoords[this.#joint].x
-            coords[end].x = jointCoords[this.#joint].x
-            coords = coords.filter((c, i) => coords.findIndex(cc => cc.x === c.x && cc.y === c.y) === i)
+            coords[ini].x = jointCoords[joint].x
+            coords[end].x = jointCoords[joint].x
+            coords = this.#removeDuplicateCoords(coords)
           }
         }
       } else {
         ini = 0
         end = 1
         if (coords[end].y === coords[ini].y) {
-          coords[ini].x = jointCoords[this.#joint].x
+          coords[ini].x = jointCoords[joint].x
         } else {
           if (coords.length === 2) {
             coords.splice(end, 0, coords[end])
           } else {
-            coords[ini].x = jointCoords[this.#joint].x
-            coords[end].x = jointCoords[this.#joint].x
-            coords = coords.filter((c, i) => coords.findIndex(cc => cc.x === c.x && cc.y === c.y) === i)
+            coords[ini].x = jointCoords[joint].x
+            coords[end].x = jointCoords[joint].x
+            coords = this.#removeDuplicateCoords(coords)
           }
         }
       }
@@ -389,10 +396,14 @@ export class FlowLine {
     }
   }
 
-  getCoords () {
+  #getCoords () {
     const points = this.#group.childNodes[0].getAttributeNS(null, 'points')
     const coords = Polyline.pointsToCoords(points)
     return coords
+  }
+
+  #removeDuplicateCoords (coords) {
+    return coords.filter((c, i) => coords.findIndex(cc => cc.x === c.x && cc.y === c.y) === i)
   }
 
   getGroup () {
@@ -416,7 +427,7 @@ class JointsPair {
         firstIsNear = true
       }
     } else if (this.segmentType === SegmentType.HorizontalBottom) {
-      if (this.firstJoint.bottom.y > this.secondJoint.bottom.y) {
+      if (this.firstJoint.bottom.y >= this.secondJoint.bottom.y) {
         firstIsNear = true
       }
     }
@@ -426,6 +437,18 @@ class JointsPair {
     } else {
       this.nearJoint = this.secondJoint
       this.farJoint = this.firstJoint
+    }
+  }
+
+  areEquals () {
+    return (this.firstJoint.top.y === this.secondJoint.top.y)
+  }
+
+  exceedsLimitForSelfJoin (y, coords) {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return (Math.max(coords[0].y, coords[coords.length - 1].y) - y) < (this.nearJoint.left.y - this.nearJoint.top.y)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return (y - Math.min(coords[0].y, coords[coords.length - 1].y)) < (this.nearJoint.bottom.y - this.nearJoint.left.y)
     }
   }
 
@@ -461,11 +484,27 @@ class JointsPair {
     }
   }
 
-  exceedsFarLeftY (y) {
+  exceedsFarOutermostY (y) {
     if (this.segmentType === SegmentType.HorizontalTop) {
-      return (y >= this.farJoint.left.y)
+      return (y >= this.farJoint.top.y)
     } else if (this.segmentType === SegmentType.HorizontalBottom) {
-      return (y <= this.farJoint.left.y)
+      return (y <= this.farJoint.bottom.y)
+    }
+  }
+
+  exceedsLimitY (y, yRef) {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return (y > yRef)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return (y < yRef)
+    }
+  }
+
+  isSourceSide (yIni, yEnd) {
+    if (this.segmentType === SegmentType.HorizontalTop) {
+      return (yIni < yEnd)
+    } else if (this.segmentType === SegmentType.HorizontalBottom) {
+      return (yIni > yEnd)
     }
   }
 }

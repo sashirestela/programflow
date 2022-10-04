@@ -104,17 +104,17 @@ class Shape {
     }
     this.#transform.setTranslate(coord.x - this.#offset.x, coord.y - this.#offset.y)
 
-    this.#flowlines.forEach(obj => obj.flowline.shapeDrag(this.#movementType))
+    this.#flowlines.forEach(obj => obj.flowline.shapeDrag(obj.terminalType, this.#movementType))
   }
 
   getGroup () {
     return this.#group
   }
 
-  connect (flowline, terminalType) {
+  connect (aFlowline, aTerminalType) {
     this.#flowlines.push({
-      flowline,
-      terminalType
+      flowline: aFlowline,
+      terminalType: aTerminalType
     })
   }
 }
@@ -134,7 +134,7 @@ class InteractionShape extends Shape {
   calculateDirections () {
     const sizeX = this.width
     const sizeY = this.height
-    const delta = sizeY / 5
+    const delta = sizeY / 4
     const origX = this.cx - sizeX / 2 + delta
     const origY = this.cy - sizeY / 2
     const directions = `M ${origX} ${origY} h ${sizeX - delta} l -${delta} ${sizeY} h -${sizeX - delta} z`
