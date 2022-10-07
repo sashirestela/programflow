@@ -28,7 +28,7 @@ class Shape {
     this.#group.classList.add('draggable')
 
     const path = document.createElementNS(Svg.NS, 'path')
-    path.setAttributeNS(null, 'd', this.calculateDirections())
+    path.setAttributeNS(null, 'd', this.shapePath())
     this.#group.appendChild(path)
 
     const text = document.createElementNS(Svg.NS, 'text')
@@ -79,7 +79,7 @@ class Shape {
     const svg = this.#group.ownerSVGElement
     this.#initial = Svg.getMousePosition(svg, evt)
     this.#offset = Svg.getMousePosition(svg, evt)
-    this.#transform = Svg.getTranformTranslate(this.#group)
+    this.#transform = Svg.getTransformTranslate(this.#group)
     this.#offset.x -= this.#transform.matrix.e
     this.#offset.y -= this.#transform.matrix.f
     this.#movementType = null
@@ -107,6 +107,10 @@ class Shape {
     this.#flowlines.forEach(obj => obj.flowline.shapeDrag(obj.terminalType, this.#movementType))
   }
 
+  move (deltaCoord) {
+    
+  }
+
   getGroup () {
     return this.#group
   }
@@ -120,7 +124,7 @@ class Shape {
 }
 
 class SingleShape extends Shape {
-  calculateDirections () {
+  shapePath () {
     const sizeX = this.width
     const sizeY = this.height
     const origX = this.cx - sizeX / 2
@@ -131,7 +135,7 @@ class SingleShape extends Shape {
 }
 
 class InteractionShape extends Shape {
-  calculateDirections () {
+  shapePath () {
     const sizeX = this.width
     const sizeY = this.height
     const delta = sizeY / 4
@@ -143,7 +147,7 @@ class InteractionShape extends Shape {
 }
 
 class SplitShape extends Shape {
-  calculateDirections () {
+  shapePath () {
     const sizeX = this.width
     const sizeY = this.height
     const origX = this.cx - sizeX / 2
@@ -154,7 +158,7 @@ class SplitShape extends Shape {
 }
 
 class TerminalShape extends Shape {
-  calculateDirections () {
+  shapePath () {
     const sizeX = this.width
     const sizeY = this.height
     const radius = sizeY / 2
@@ -167,7 +171,7 @@ class TerminalShape extends Shape {
 }
 
 class LoopShape extends Shape {
-  calculateDirections () {
+  shapePath () {
     const sizeX = this.width
     const sizeY = this.height
     const delta = sizeY / 2
@@ -180,7 +184,7 @@ class LoopShape extends Shape {
 }
 
 class AuxiliarShape extends Shape {
-  calculateDirections () {
+  shapePath () {
     const sizeY = this.height
     const radius = sizeY / 2
     const origX = this.cx

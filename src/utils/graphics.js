@@ -10,7 +10,7 @@ class Svg {
     }
   }
 
-  static getTranformTranslate (selected) {
+  static getTransformTranslate (selected) {
     const svg = selected.ownerSVGElement
     const transforms = selected.transform.baseVal
     if (transforms.length === 0 || transforms[0].type !== window.SVGTransform.SVG_TRANSFORM_TRANSLATE) {

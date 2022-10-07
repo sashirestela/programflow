@@ -45,7 +45,7 @@ export class FlowLine {
     this.#group.appendChild(polyline2)
     if (this.isActionable) {
       const button = document.createElementNS(Svg.NS, 'path')
-      button.setAttributeNS(null, 'd', this.#buttonShape(coords))
+      button.setAttributeNS(null, 'd', this.#buttonPath(coords))
       button.classList.add('flowlines-add')
       const title = document.createElementNS(Svg.NS, 'title')
       title.appendChild(document.createTextNode(Svg.TITLE_BUTTON))
@@ -74,7 +74,7 @@ export class FlowLine {
     let indexText = 2
     if (this.isActionable) {
       const button = this.#group.childNodes[2]
-      button.setAttributeNS(null, 'd',this.#buttonShape(coords))
+      button.setAttributeNS(null, 'd',this.#buttonPath(coords))
       indexText++
     }
     if (this.text !== null) {
@@ -85,7 +85,7 @@ export class FlowLine {
     }
   }
 
-  #buttonShape (coords) {
+  #buttonPath (coords) {
     const center = Polyline.coordAlongCoords(Polyline.length(coords) * Svg.POSITION_ADD_BUTTON, coords)
     const radius = Svg.RADIUS_ADD_BUTTON
     const origX = center.x
@@ -402,6 +402,14 @@ export class FlowLine {
 
   #removeDuplicateCoords (coords) {
     return coords.filter((c, i) => coords.findIndex(cc => cc.x === c.x && cc.y === c.y) === i)
+  }
+
+  move (deltaCoord) {
+    const coords = this.#getCoords()
+    const newCoords = coords.map(coord => {
+      return { x: coord.x + deltaCoord.x, y: coord.y + deltaCoord.y }
+    })
+    this.#update(newCoords)
   }
 
   onClick (evt) {
