@@ -25,8 +25,24 @@ class Svg {
     return 'http://www.w3.org/2000/svg'
   }
 
-  static get MARGIN () {
+  static get MARGIN_SELECTION () {
     return 6
+  }
+
+  static get PADDING_TEXT_VERTICAL () {
+    return 5
+  }
+
+  static get RADIUS_ADD_BUTTON () {
+    return 8
+  }
+
+  static get POSITION_ADD_BUTTON () {
+    return 3 / 8
+  }
+
+  static get TITLE_BUTTON () {
+    return 'Add Statement'
   }
 }
 
@@ -78,7 +94,7 @@ class Polyline {
     return result
   }
 
-  static pickedSegmentOnPoints (points, coord, margin) {
+  static pickedSegmentOnPoints (points, coord) {
     const segment = []
     const coords = Polyline.pointsToCoords(points)
     for (let i = 0; i < coords.length - 1; i++) {
@@ -86,7 +102,7 @@ class Polyline {
       if (coords[i].x === coords[j].x) {
         if ((coord.y > coords[i].y && coord.y < coords[j].y) ||
           (coord.y > coords[j].y && coord.y < coords[i].y)) {
-          if (Math.abs(coord.x - coords[i].x) <= margin) {
+          if (Math.abs(coord.x - coords[i].x) <= Svg.MARGIN_SELECTION) {
             segment.push(coords[i])
             segment.push(coords[j])
             break
@@ -95,7 +111,7 @@ class Polyline {
       } else if (coords[i].y === coords[j].y) {
         if ((coord.x > coords[i].x && coord.x < coords[j].x) ||
           (coord.x > coords[j].x && coord.x < coords[i].x)) {
-          if (Math.abs(coord.y - coords[i].y) <= margin) {
+          if (Math.abs(coord.y - coords[i].y) <= Svg.MARGIN_SELECTION) {
             segment.push(coords[i])
             segment.push(coords[j])
             break
@@ -164,6 +180,42 @@ class Polyline {
     } else {
       return SegmentType.Undraggable
     }
+  }
+
+  static coordAlongCoords (distance, coords, isForText = false) {
+    let coord = { x: null, y: null }
+    let coordCurr = { x: null, y: null }
+    let coordNext = { x: null, y: null }
+    let distAbs = Math.abs(distance)
+    for (let i = 0; i < coords.length - 1; i++) {
+      coordCurr = coords[distance >= 0 ? i : coords.length - 1 - i]
+      coordNext = coords[distance >= 0 ? i + 1 : coords.length - 2 - i]
+      let dist = Math.sqrt(Math.pow(coordNext.x - coordCurr.x, 2) + Math.pow(coordNext.y - coordCurr.y, 2))
+      if (distAbs <= dist) {
+        coord = { x: coordCurr.x, y: coordCurr.y }
+        if (coordCurr.x === coordNext.x) {
+          coord.y += distAbs * (coordCurr.y < coordNext.y ? 1 : -1)
+        } else if (coordCurr.y === coordNext.y) {
+          coord.x += distAbs * (coordCurr.x < coordNext.x ? 1 : -1)
+          if (isForText) coord.y -= Svg.PADDING_TEXT_VERTICAL
+        }
+        break
+      } else {
+        distAbs -= dist
+      }
+    }
+    return coord
+  }
+
+  static length (coords) {
+    let total = 0
+    let coordCurr, coordNext
+    for (let i = 0; i < coords.length - 1; i++) {
+      coordCurr = coords[i]
+      coordNext = coords[i + 1]
+      total += Math.sqrt(Math.pow(coordNext.x - coordCurr.x, 2) + Math.pow(coordNext.y - coordCurr.y, 2))
+    }
+    return total
   }
 }
 

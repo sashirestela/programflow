@@ -22,31 +22,44 @@ h1 {
   fill: moccasin;
 }
 
-.shapes:hover {
+/*.shapes:hover {
   stroke: dodgerblue;
   fill: lightskyblue;
-}
+}*/
 
 .flowlines {
   marker-end: url("#arrow");
-  stroke: indianred;
   stroke-width: 1;
+  stroke: indianred;
   fill: none;
 }
 
-.flowlines:hover {
+/*.flowlines:hover {
   marker-end: url("#arrow-hover");
   stroke: dodgerblue;
-}
+}*/
 
 .flowlines-shadow {
-  stroke: transparent;
   stroke-width: 12;
+  stroke: transparent;
   fill: none;
 }
 
-.flowlines-shadow:hover {
+/*.flowlines-shadow:hover {
   stroke: lightskyblue;
+}*/
+
+.flowlines-add {
+  stroke-width: 1;
+  stroke: transparent;
+  fill: none;
+}
+
+.draggable:hover .flowlines-add {
+  stroke-width: 2;
+  stroke: dodgerblue;
+  fill: #daeefe;
+  cursor: pointer
 }
 
 #arrow {

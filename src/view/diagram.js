@@ -11,10 +11,10 @@ export class Diagram {
 
   constructor (obj) {
     Object.assign(this, obj)
-    this.config()
+    this.#config()
   }
 
-  config () {
+  #config () {
     this.#svg = document.createElementNS(Svg.NS, 'svg')
     this.#svg.setAttributeNS(null, 'id', this.id)
     this.#svg.setAttributeNS(null, 'x', '0')
@@ -23,14 +23,14 @@ export class Diagram {
     this.#svg.setAttributeNS(null, 'width', '100%')
     this.#svg.classList.add('diagram')
 
-    this.configEvents()
-    this.configMarker()
+    this.#configEvents()
+    this.#configMarker()
 
     const holder = document.getElementById(this.holderDomId)
     holder.appendChild(this.#svg)
   }
 
-  configEvents () {
+  #configEvents () {
     const that = this
     this.#svg.addEventListener('mousedown', e => that.startDrag(e))
     this.#svg.addEventListener('mousemove', e => that.drag(e))
@@ -43,7 +43,7 @@ export class Diagram {
     this.#svg.addEventListener('touchcancel', e => that.endDrag(e))
   }
 
-  configMarker () {
+  #configMarker () {
     const polygon = document.createElementNS(Svg.NS, 'polygon')
     polygon.setAttributeNS(null, 'points', `0 0, ${this.markerWidth} ${this.markerHeight / 2}, 0 ${this.markerHeight}`)
 

@@ -157,11 +157,11 @@ class TerminalShape extends Shape {
   calculateDirections () {
     const sizeX = this.width
     const sizeY = this.height
-    const radio = sizeY / 2
-    const origX = this.cx - sizeX / 2 + radio
+    const radius = sizeY / 2
+    const origX = this.cx - sizeX / 2 + radius
     const origY = this.cy - sizeY / 2
-    const directions = `M ${origX} ${origY} h ${sizeX - 2 * radio} a ${radio} ${radio} 0 1 1 0 ${2 * radio} ` +
-      `h -${sizeX - 2 * radio} a ${radio} ${radio} 0 1 1 0 -${2 * radio}`
+    const directions = `M ${origX} ${origY} h ${sizeX - 2 * radius} a ${radius} ${radius} 0 1 1 0 ${2 * radius} ` +
+      `h -${sizeX - 2 * radius} a ${radius} ${radius} 0 1 1 0 -${2 * radius}`
     return directions
   }
 }
@@ -182,10 +182,10 @@ class LoopShape extends Shape {
 class AuxiliarShape extends Shape {
   calculateDirections () {
     const sizeY = this.height
-    const radio = sizeY / 2
+    const radius = sizeY / 2
     const origX = this.cx
     const origY = this.cy - sizeY / 2
-    const directions = `M ${origX} ${origY} a ${radio} ${radio} 0 1 1 0 ${2 * radio} a ${radio} ${radio} 0 1 1 0 -${2 * radio}`
+    const directions = `M ${origX} ${origY} a ${radius} ${radius} 0 1 1 0 ${2 * radius} a ${radius} ${radius} 0 1 1 0 -${2 * radius}`
     return directions
   }
 }
