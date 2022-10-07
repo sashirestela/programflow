@@ -10,8 +10,7 @@ class Shape {
 
   #group
   #initial
-  #offset
-  #transform
+
   #movementType
 
   #flowlines = []
@@ -43,10 +42,9 @@ class Shape {
   }
 
   centerCoord () {
-    const transforms = this.#group.transform.baseVal
     return {
-      x: this.cx + (transforms.length === 0 ? 0 : transforms[0].matrix.e),
-      y: this.cy + (transforms.length === 0 ? 0 : transforms[0].matrix.f)
+      x: this.cx,
+      y: this.cy
     }
   }
 
@@ -78,10 +76,6 @@ class Shape {
   startDrag (evt) {
     const svg = this.#group.ownerSVGElement
     this.#initial = Svg.getMousePosition(svg, evt)
-    this.#offset = Svg.getMousePosition(svg, evt)
-    this.#transform = Svg.getTransformTranslate(this.#group)
-    this.#offset.x -= this.#transform.matrix.e
-    this.#offset.y -= this.#transform.matrix.f
     this.#movementType = null
 
     this.#flowlines.forEach(obj => obj.flowline.startShapeDrag(obj.terminalType))
@@ -102,13 +96,24 @@ class Shape {
     } else if (this.#movementType === MovementType.Horizontal) {
       coord.y = this.#initial.y
     }
-    this.#transform.setTranslate(coord.x - this.#offset.x, coord.y - this.#offset.y)
+    this.move({
+      x: coord.x - this.#initial.x,
+      y: coord.y - this.#initial.y
+    })
+    this.#initial.x = coord.x
+    this.#initial.y = coord.y
 
     this.#flowlines.forEach(obj => obj.flowline.shapeDrag(obj.terminalType, this.#movementType))
   }
 
   move (deltaCoord) {
-    
+    this.cx = this.cx + deltaCoord.x
+    this.cy = this.cy + deltaCoord.y
+    const path = this.#group.childNodes[0]
+    path.setAttributeNS(null, 'd', this.shapePath())
+    const text = this.#group.childNodes[1]
+    text.setAttributeNS(null, 'x', this.cx)
+    text.setAttributeNS(null, 'y', this.cy)
   }
 
   getGroup () {

@@ -181,6 +181,7 @@ diagram.add(loop)
 diagram.add(aux2)
 diagram.add(output)
 diagram.add(end)
+
 diagram.add(line1)
 diagram.add(line2)
 diagram.add(line3)
