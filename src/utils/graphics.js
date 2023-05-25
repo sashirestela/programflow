@@ -1,48 +1,10 @@
 class Svg {
-  static getMousePosition (svg, evt) {
-    const CTM = svg.getScreenCTM()
-    if (evt.touches) {
-      evt = evt.touches[0]
-    }
-    return {
-      x: (evt.clientX - CTM.e) / CTM.a,
-      y: (evt.clientY - CTM.f) / CTM.d
-    }
-  }
-
-  static getTransformTranslate (selected) {
-    const svg = selected.ownerSVGElement
-    const transforms = selected.transform.baseVal
-    if (transforms.length === 0 || transforms[0].type !== window.SVGTransform.SVG_TRANSFORM_TRANSLATE) {
-      const translate = svg.createSVGTransform()
-      translate.setTranslate(0, 0)
-      selected.transform.baseVal.insertItemBefore(translate, 0)
-    }
-    return transforms[0]
-  }
-
-  static get NS () {
-    return 'http://www.w3.org/2000/svg'
-  }
-
   static get MARGIN_SELECTION () {
     return 6
   }
 
   static get PADDING_TEXT_VERTICAL () {
     return 5
-  }
-
-  static get RADIUS_ADD_BUTTON () {
-    return 8
-  }
-
-  static get POSITION_ADD_BUTTON () {
-    return 3 / 8
-  }
-
-  static get TITLE_BUTTON () {
-    return 'Add Statement'
   }
 }
 
@@ -76,6 +38,70 @@ class SegmentType {
   static Undraggable = new SegmentType('Undraggable')
 }
 
+class PolylineType {
+  contructor (type) {
+    this.type = type
+  }
+
+  static get (coords) {
+    const n = coords.length
+    if (n === 2) {
+      if (coords[0].x === coords[1].x) {
+        return PolylineType.Vertical
+      } else {
+        return PolylineType.Horizontal
+      }
+    } else if (n === 3) {
+      if (coords[0].y === coords[1].y) {
+        if (coords[0].x > coords[1].x) {
+          return PolylineType.TopLeft
+        } else {
+          return PolylineType.TopRight
+        }
+      } else {
+        if (coords[1].x < coords[2].x) {
+          return PolylineType.BottomLeft
+        } else {
+          return PolylineType.BottomRight
+        }
+      }
+    } else if (n === 4) {
+      if (coords[2].y === coords[3].y) {
+        if (coords[2].x < coords[3].x) {
+          return PolylineType.CLeft
+        } else {
+          return PolylineType.CRight
+        }
+      } else {
+        if (coords[1].x < coords[2].x) {
+          return PolylineType.ULeft
+        } else {
+          return PolylineType.URight
+        }
+      }
+    } else if (n === 5) {
+      if (coords[0].x > coords[1].x) {
+        return PolylineType.LoopLeft
+      } else {
+        return PolylineType.LoopRight
+      }
+    }
+  }
+
+  static Vertical = new PolylineType('Vertical')
+  static Horizontal = new PolylineType('Horizontal')
+  static TopLeft = new PolylineType('TopLeft')
+  static TopRight = new PolylineType('TopRight')
+  static BottomLeft = new PolylineType('BottomLeft')
+  static BottomRight = new PolylineType('BottomRight')
+  static CLeft = new PolylineType('CLeft')
+  static CRight = new PolylineType('CRight')
+  static ULeft = new PolylineType('ULeft')
+  static URight = new PolylineType('URight')
+  static LoopLeft = new PolylineType('LoopLeft')
+  static LoopRight = new PolylineType('LoopRight')
+}
+
 class Polyline {
   static coordsToPoints (coords) {
     const result = coords.reduce((points, coord) => {
@@ -94,9 +120,8 @@ class Polyline {
     return result
   }
 
-  static pickedSegmentOnPoints (points, coord) {
+  static pickedSegmentOnCoords (coords, coord) {
     const segment = []
-    const coords = Polyline.pointsToCoords(points)
     for (let i = 0; i < coords.length - 1; i++) {
       const j = i + 1
       if (coords[i].x === coords[j].x) {
@@ -138,8 +163,7 @@ class Polyline {
       (segment[0].y >= lowest.y && segment[1].y >= lowest.y))
   }
 
-  static segmentTypeOnPoints (segment, points) {
-    const coords = Polyline.pointsToCoords(points)
+  static segmentTypeOnCoords (segment, coords) {
     if (segment[0].x === segment[1].x) {
       const longest = [coords[0], coords[0]]
       for (let i = 0; i < coords.length - 1; i++) {
@@ -217,6 +241,18 @@ class Polyline {
     }
     return total
   }
+
+  static firstVerticalSegment (coords) {
+    let segment = []
+    for (let i = 0; i < coords.length; i++) {
+      if (coords[i].x === coords[i + 1].x) {
+        segment.push(coords[i])
+        segment.push(coords[i + 1])
+        break
+      }
+    }
+    return segment
+  }
 }
 
 class Direction {
@@ -285,10 +321,10 @@ class Direction {
 }
 
 export {
-  Svg,
   MovementType,
   TerminalType,
   SegmentType,
+  PolylineType,
   Polyline,
   Direction
 }

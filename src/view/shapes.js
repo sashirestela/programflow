@@ -1,4 +1,5 @@
-import { Svg, MovementType } from './../utils/graphics.js'
+import { MovementType } from './../utils/graphics.js'
+import { SvgUtil } from './../utils/svgutil.js'
 
 class Shape {
   id = null
@@ -21,50 +22,52 @@ class Shape {
   }
 
   config () {
-    this.#group = document.createElementNS(Svg.NS, 'g')
-    this.#group.setAttributeNS(null, 'id', this.id)
-    this.#group.classList.add('shapes')
-    this.#group.classList.add('draggable')
-
-    const path = document.createElementNS(Svg.NS, 'path')
-    path.setAttributeNS(null, 'd', this.shapePath())
-    this.#group.appendChild(path)
-
-    const text = document.createElementNS(Svg.NS, 'text')
-    text.setAttributeNS(null, 'text-anchor', 'middle')
-    text.setAttributeNS(null, 'alignment-baseline', 'middle')
-    text.setAttributeNS(null, 'x', this.cx)
-    text.setAttributeNS(null, 'y', this.cy)
-    text.appendChild(document.createTextNode(this.text))
-    this.#group.appendChild(text)
-
+    const group = SvgUtil.create('g')
+      .attr('id', this.id)
+      .classed('shapes', true)
+      .classed('draggable', true)
+    group
+      .append('path')
+        .attr('d', this.shapePath())
+    group
+      .append('text')
+        .attr('text-anchor', 'middle')
+        .attr('alignment-baseline', 'middle')
+        .attr('x', this.cx)
+        .attr('y', this.cy)
+        .attr('text', this.text)
+    
+    this.#group = group.element
     this.#group.diagramElement = this
   }
 
-  centerCoord () {
+  geometry () {
+    const center = {x: this.cx, y: this.cy}
+    const area = {w: this.width, h: this.height}
     return {
-      x: this.cx,
-      y: this.cy
+      x: center.x,
+      y: center.y,
+      w: area.w,
+      h: area.h
     }
   }
 
   jointCoords () {
-    const { x: cx, y: cy } = this.centerCoord()
+    const { x: cx, y: cy, w: width, h: height } = this.geometry()
     return {
-      top: { x: cx, y: cy - this.height / 2 },
-      bottom: { x: cx, y: cy + this.height / 2 },
-      left: { x: cx - this.width / 2, y: cy },
-      right: { x: cx + this.width / 2, y: cy }
+      top: { x: cx, y: cy - height / 2 },
+      bottom: { x: cx, y: cy + height / 2 },
+      left: { x: cx - width / 2, y: cy },
+      right: { x: cx + width / 2, y: cy }
     }
   }
 
   borderLines () {
-    const { x: cx, y: cy } = this.centerCoord()
-    const
-      topLeft = { x: cx - this.width / 2, y: cy - this.height / 2 }
-    const topRight = { x: cx + this.width / 2, y: cy - this.height / 2 }
-    const bottomLeft = { x: cx - this.width / 2, y: cy + this.height / 2 }
-    const bottomRight = { x: cx + this.width / 2, y: cy + this.height / 2 }
+    const { x: cx, y: cy, w: width, h: height } = this.geometry()
+    const topLeft = { x: cx - width / 2, y: cy - height / 2 }
+    const topRight = { x: cx + width / 2, y: cy - height / 2 }
+    const bottomLeft = { x: cx - width / 2, y: cy + height / 2 }
+    const bottomRight = { x: cx + width / 2, y: cy + height / 2 }
     return [
       [topLeft, topRight],
       [bottomLeft, bottomRight],
@@ -74,41 +77,35 @@ class Shape {
   }
 
   startDrag (evt) {
-    const svg = this.#group.ownerSVGElement
-    this.#initial = Svg.getMousePosition(svg, evt)
+    const diagram = evt.target.ownerSVGElement.diagram
+    this.#initial = SvgUtil.mousePosition(this.#group, evt, diagram.gridSize)
     this.#movementType = null
 
     this.#flowlines.forEach(obj => obj.flowline.startShapeDrag(obj.terminalType))
   }
 
   drag (evt) {
-    const svg = this.#group.ownerSVGElement
-    const coord = Svg.getMousePosition(svg, evt)
-    if (this.#movementType === null) {
-      if (Math.abs((coord.y - this.#initial.y)) >= Math.abs((coord.x - this.#initial.x))) {
-        this.#movementType = MovementType.Vertical
-      } else {
-        this.#movementType = MovementType.Horizontal
-      }
+    const diagram = evt.target.ownerSVGElement.diagram
+    const coord = SvgUtil.mousePosition(this.#group, evt, diagram.gridSize)
+    if (Math.abs((coord.y - this.#initial.y)) >= Math.abs((coord.x - this.#initial.x))) {
+      this.#movementType = MovementType.Vertical
+    } else {
+      this.#movementType = MovementType.Horizontal
     }
-    if (this.#movementType === MovementType.Vertical) {
-      coord.x = this.#initial.x
-    } else if (this.#movementType === MovementType.Horizontal) {
-      coord.y = this.#initial.y
-    }
-    this.move({
-      x: coord.x - this.#initial.x,
-      y: coord.y - this.#initial.y
-    })
+    this.move(coord.x - this.#initial.x, coord.y - this.#initial.y)
     this.#initial.x = coord.x
     this.#initial.y = coord.y
 
     this.#flowlines.forEach(obj => obj.flowline.shapeDrag(obj.terminalType, this.#movementType))
   }
 
-  move (deltaCoord) {
-    this.cx = this.cx + deltaCoord.x
-    this.cy = this.cy + deltaCoord.y
+  endDrag () {
+    this.#flowlines.forEach(obj => obj.flowline.endDrag())
+  }
+
+  move (deltaX, deltaY) {
+    this.cx = this.cx + deltaX
+    this.cy = this.cy + deltaY
     const path = this.#group.childNodes[0]
     path.setAttributeNS(null, 'd', this.shapePath())
     const text = this.#group.childNodes[1]
@@ -120,11 +117,21 @@ class Shape {
     return this.#group
   }
 
+  getFlowlines() {
+    return this.#flowlines
+  }
+
   connect (aFlowline, aTerminalType) {
     this.#flowlines.push({
       flowline: aFlowline,
       terminalType: aTerminalType
     })
+  }
+
+  disconnect (aFlowline, aTerminalType) {
+    const index = this.#flowlines
+      .findIndex(item => item.flowline.id === aFlowline.id && item.terminalType === aTerminalType)
+    this.#flowlines.splice(index, 1)
   }
 }
 

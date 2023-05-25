@@ -1,19 +1,20 @@
 import { Helper } from './helper.js'
+import { Util } from './util.js'
 
 class Validator {
   static #checkArgumentType (argumentValue, parameterName, expectedType) {
-    if (parameterName === undefined || expectedType === undefined) {
+    if (Util.someUndefined(parameterName, expectedType)) {
       throw new TypeError("Missing arguments 'parameterName' or 'expectedType'.")
     }
-    if (typeof expectedType === 'function' || typeof expectedType === 'object') {
-      if (!(argumentValue instanceof expectedType &&
+    if (Util.isTypeOf(expectedType, 'function', 'object')) {
+      if (!(Util.isInstanceOf(argumentValue, expectedType) &&
                 (Helper.classFromObject(argumentValue) === 'Object' ||
                     Helper.classFromClass(expectedType) !== 'Object'))
       ) {
         throw new ArgumentTypeError(parameterName, Helper.classFromClass(expectedType))
       }
     } else {
-      if (typeof argumentValue !== expectedType) { // eslint-disable-line valid-typeof
+      if (!Util.isTypeOf(argumentValue, expectedType)) { // eslint-disable-line valid-typeof
         throw new ArgumentTypeError(parameterName, expectedType)
       }
     }
@@ -33,25 +34,25 @@ class Validator {
   }
 
   static checkArgumentTypeIfExists (argumentValue, parameterName, expectedType, isArray = false, allowNulls = false) {
-    if (argumentValue !== undefined && argumentValue !== null) {
+    if (!Util.isNothing(argumentValue)) {
       this.checkArgumentType(argumentValue, parameterName, expectedType, isArray, allowNulls)
     }
   }
 
   static checkArgumentCardinality (argumentValue, parameterName, expectedCardinality) {
-    if (parameterName === undefined || expectedCardinality === undefined) {
+    if (Util.someUndefined(parameterName, expectedCardinality)) {
       throw new TypeError("Missing arguments 'parameterName' or 'expectedCardinality'.")
     }
     if (expectedCardinality.number === Cardinality.Zero.number) {
-      if (argumentValue !== undefined && argumentValue !== null) {
-        if (typeof argumentValue !== 'object') {
+      if (!Util.isNothing(argumentValue)) {
+        if (!Util.isTypeOf(argumentValue, 'object')) {
           throw new ArgumentCardinalityError(parameterName, expectedCardinality)
         } else if (Object.keys(argumentValue).length > 0) {
           throw new ArgumentCardinalityError(parameterName, expectedCardinality)
         }
       }
     } else {
-      if (argumentValue === undefined || argumentValue === null) {
+      if (Util.isNothing(argumentValue)) {
         throw new ArgumentCardinalityError(parameterName, expectedCardinality)
       } else {
         if (Array.isArray(argumentValue)) {

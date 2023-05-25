@@ -1,13 +1,18 @@
-import { Svg, MovementType, TerminalType, SegmentType, Polyline, Direction } from './../utils/graphics.js'
+import { MovementType, TerminalType, SegmentType, Polyline, PolylineType, Direction } from './../utils/graphics.js'
+import { SvgUtil } from './../utils/svgutil.js'
 
 export class FlowLine {
   id = null
   text = null
-  textGap = 0
+  textGap = 10
   isActionable = true
   route = null
   source = null
   target = null
+  
+  addButtonRadius = 8
+  addButtonPosition = 3/4
+  addButtonText = 'Add Statement'
 
   #group
   #staticCoord
@@ -29,39 +34,40 @@ export class FlowLine {
       jointSource: this.source.jointCoords(),
       jointTarget: this.target.jointCoords()
     })
-
-    this.#group = document.createElementNS(Svg.NS, 'g')
-    this.#group.setAttributeNS(null, 'id', this.id)
-    this.#group.classList.add('draggable')
-
     const coords = direction.getCoords(this.route)
-    const polyline = document.createElementNS(Svg.NS, 'polyline')
-    polyline.setAttributeNS(null, 'points', Polyline.coordsToPoints(coords))
-    const polyline1 = polyline.cloneNode(true)
-    polyline1.classList.add('flowlines-shadow')
-    const polyline2 = polyline.cloneNode(true)
-    polyline2.classList.add('flowlines')
-    this.#group.appendChild(polyline1)
-    this.#group.appendChild(polyline2)
+
+    const group = SvgUtil.create('g')
+      .attr('id', this.id)
+      .classed('draggable', true)
+    const polyline = group
+      .append('polyline')
+        .attr('points', Polyline.coordsToPoints(coords))
+        .classed('flowlines-shadow', true)
+    group
+      .append(polyline.clone())
+        .classed('flowlines-shadow', false)
+        .classed('flowlines', true)
     if (this.isActionable) {
-      const button = document.createElementNS(Svg.NS, 'path')
-      button.setAttributeNS(null, 'd', this.#buttonPath(coords))
-      button.classList.add('flowlines-add')
-      const title = document.createElementNS(Svg.NS, 'title')
-      title.appendChild(document.createTextNode(Svg.TITLE_BUTTON))
-      button.appendChild(title)
-      button.addEventListener('click', e => this.onClick(e))
-      this.#group.appendChild(button)
+      const button = group
+        .append('path')
+          .attr('d', this.#buttonPath(coords))
+          .classed('flowlines-add', true)
+          .listener('click', this.onClick)
+      button
+        .append('title')
+          .attr('text', this.addButtonText)
     }
     if (this.text !== null) {
       const coord = Polyline.coordAlongCoords(this.textGap, coords, true)
-      const text = document.createElementNS(Svg.NS, 'text')
-      text.setAttributeNS(null, 'text-anchor', 'middle')
-      text.setAttributeNS(null, 'x', coord.x)
-      text.setAttributeNS(null, 'y', coord.y)
-      text.appendChild(document.createTextNode(this.text))
-      this.#group.appendChild(text)
+      group
+        .append('text')
+          .attr('text-anchor', 'middle')
+          .attr('x', coord.x)
+          .attr('y', coord.y)
+          .attr('text', this.text)
     }
+    
+    this.#group = group.element
     this.#group.diagramElement = this
   }
 
@@ -86,8 +92,9 @@ export class FlowLine {
   }
 
   #buttonPath (coords) {
-    const center = Polyline.coordAlongCoords(Polyline.length(coords) * Svg.POSITION_ADD_BUTTON, coords)
-    const radius = Svg.RADIUS_ADD_BUTTON
+    const segment = Polyline.firstVerticalSegment(coords)
+    const center = {x: segment[0].x, y: (segment[0].y + segment[1].y) / 2}
+    const radius = this.addButtonRadius
     const origX = center.x
     const origY = center.y - radius
     const halfPlus = radius * 1 / 2
@@ -98,12 +105,11 @@ export class FlowLine {
   }
 
   startDrag (evt) {
-    const svg = this.#group.ownerSVGElement
     const jointSource = this.source.jointCoords()
     const jointTarget = this.target.jointCoords()
-    const coord = Svg.getMousePosition(svg, evt)
-    const points = this.#group.childNodes[0].getAttributeNS(null, 'points')
-    const segment = Polyline.pickedSegmentOnPoints(points, coord)
+    const diagram = evt.target.ownerSVGElement.diagram
+    const coord = SvgUtil.mousePosition(this.#group, evt, diagram.gridSize)
+    const segment = Polyline.pickedSegmentOnCoords(this.getCoords(), coord)
     let isDraggable = (segment.length > 0)
     isDraggable = isDraggable &&
       !Polyline.isVerticalAndOutsideOfJoints(segment, jointSource, jointTarget)
@@ -111,7 +117,7 @@ export class FlowLine {
       !(Polyline.isSegmentAlongBorder(segment, this.source.borderLines()) ||
         Polyline.isSegmentAlongBorder(segment, this.target.borderLines()))
     if (isDraggable) {
-      this.#selectedSegmentType = Polyline.segmentTypeOnPoints(segment, points)
+      this.#selectedSegmentType = Polyline.segmentTypeOnCoords(segment, this.getCoords())
     } else {
       this.#selectedSegmentType = SegmentType.Undraggable
     }
@@ -127,10 +133,10 @@ export class FlowLine {
   }
 
   drag (evt) {
-    const svg = this.#group.ownerSVGElement
     const jointSource = this.source.jointCoords()
     const jointTarget = this.target.jointCoords()
-    const coord = Svg.getMousePosition(svg, evt)
+    const diagram = evt.target.ownerSVGElement.diagram
+    const coord = SvgUtil.mousePosition(this.#group, evt, diagram.gridSize)
     let newCoords
     if (this.#selectedSegmentType === SegmentType.VerticalInner) {
       newCoords = this.#dragVerticalInner(coord, jointSource, jointTarget)
@@ -181,7 +187,7 @@ export class FlowLine {
 
   #dragVerticalOutter (coord, jointSource, jointTarget) {
     let points
-    const coords = this.#getCoords()
+    const coords = this.getCoords()
     let lowerSource = false
     let refSource = null
     if (jointSource.top.y < jointTarget.top.y ||
@@ -260,7 +266,7 @@ export class FlowLine {
 
   #dragHorizontal (coord, jointSource, jointTarget) {
     let newCoords
-    const coords = this.#getCoords()
+    const coords = this.getCoords()
     const joints = new JointsPair({
       segmentType: this.#selectedSegmentType,
       firstJoint: jointSource,
@@ -325,7 +331,7 @@ export class FlowLine {
     const jointCoords = (terminalType === TerminalType.Source
       ? this.source.jointCoords()
       : this.target.jointCoords())
-    const coords = this.#getCoords()
+    const coords = this.getCoords()
     const jointCoord = (terminalType === TerminalType.Source
       ? coords[0]
       : coords[coords.length - 1])
@@ -342,7 +348,7 @@ export class FlowLine {
     const jointCoords = (terminalType === TerminalType.Source
       ? this.source.jointCoords()
       : this.target.jointCoords())
-    let coords = this.#getCoords()
+    let coords = this.getCoords()
     let ini, end
     if (movementType === MovementType.Vertical) {
       if (terminalType === TerminalType.Target) {
@@ -391,10 +397,83 @@ export class FlowLine {
         }
       }
     }
+    // Correct bad diagonal lines
+    let isDiagonal = false
+    let iBase = 0, k = 0
+    for (let i = 1; i < coords.length; i++) {
+      if (coords[i].x === coords[i-1].x || coords[i].y === coords[i-1].y) {
+        k = i
+      } else {
+        isDiagonal = true
+        if (i > 1) iBase = coords.length - 1
+      }
+    }
+    if (isDiagonal) {
+      if (coords[k].x === coords[k-1].x) {
+        coords[1].y = coords[iBase].y
+      }
+      if (coords[k].y === coords[k-1].y) {
+        coords[1].x = coords[iBase].x
+      }
+    }
     this.#update(coords)
   }
 
-  #getCoords () {
+  endDrag () {
+    const coords = this.getCoords()
+    const polylineType = PolylineType.get(coords)
+    let distH, distV, down
+    switch(polylineType) {
+      case PolylineType.TopLeft:
+        this.route = 'W * S *'
+        break;
+      case PolylineType.TopRight:
+        this.route = 'E * S *'
+        break;
+      case PolylineType.BottomLeft:
+        this.route = 'W * N *'
+        break;
+      case PolylineType.BottomRight:
+        this.route = 'E * N *'
+        break;
+      case PolylineType.CLeft:
+        distH = (coords[0].x - coords[1].x)
+        down = (coords[2].y > coords[1].y)
+        this.route = `W ${distH} ${down ? 'S' : 'N'} * E *`
+        break;
+      case PolylineType.CRight:
+        distH = (coords[1].x - coords[0].x)
+        down = (coords[2].y > coords[1].y)
+        this.route = `E ${distH} ${down ? 'S' : 'N'} * W *`
+        break;
+      case PolylineType.ULeft:
+        down = (coords[1].y > coords[0].y)
+        distV = down ? (coords[1].y - coords[0].y) : (coords[0].y - coords[1].y)
+        this.route = `${down ? 'S' : 'N'} ${distV} E * ${down ? 'N' : 'S'} *`
+        break;
+      case PolylineType.URight:
+        down = (coords[1].y > coords[0].y)
+        distV = down ? (coords[1].y - coords[0].y) : (coords[0].y - coords[1].y)
+        this.route = `${down ? 'S' : 'N'} ${distV} W * ${down ? 'N' : 'S'} *`
+        break;
+      case PolylineType.LoopLeft:
+        distH = (coords[0].x - coords[1].x)
+        down = (coords[2].y > coords[1].y)
+        distV = down ? (coords[2].y - coords[1].y) : (coords[1].y - coords[2].y)
+        this.route = `W ${distH} ${down ? 'S' : 'N'} ${distV} E * ${down ? 'N' : 'S'} *`
+        break;
+      case PolylineType.LoopRight:
+        distH = (coords[1].x - coords[0].x)
+        down = (coords[2].y > coords[1].y)
+        distV = down ? (coords[2].y - coords[1].y) : (coords[1].y - coords[2].y)
+        this.route = `E ${distH} ${down ? 'S' : 'N'} ${distV} W * ${down ? 'N' : 'S'} *`
+        break;
+      default:
+        this.route = 'S *'
+    }
+  }
+
+  getCoords () {
     const points = this.#group.childNodes[0].getAttributeNS(null, 'points')
     const coords = Polyline.pointsToCoords(points)
     return coords
@@ -404,16 +483,28 @@ export class FlowLine {
     return coords.filter((c, i) => coords.findIndex(cc => cc.x === c.x && cc.y === c.y) === i)
   }
 
-  move (deltaCoord) {
-    const coords = this.#getCoords()
+  move (deltaX, deltaY) {
+    const coords = this.getCoords()
     const newCoords = coords.map(coord => {
-      return { x: coord.x + deltaCoord.x, y: coord.y + deltaCoord.y }
+      return { x: coord.x + deltaX, y: coord.y + deltaY }
     })
     this.#update(newCoords)
   }
 
+  reRoute (route) {
+    this.route = route
+    const direction = new Direction({
+      jointSource: this.source.jointCoords(),
+      jointTarget: this.target.jointCoords()
+    })
+    const newCoords = direction.getCoords(this.route)
+    this.#update(newCoords)
+  }
+
   onClick (evt) {
-    alert(`Click on flowline ${evt.target.parentNode.id}`)
+    const group = evt.target.parentNode
+    const diagram = group.ownerSVGElement.diagram
+    diagram.addShapeAt(group.diagramElement)
   }
 
   getGroup () {
